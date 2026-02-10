@@ -1,0 +1,153 @@
+# ========================================
+# .gitignore pour projet Spring Boot
+# ========================================
+
+# ========================================
+# Maven
+# ========================================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ========================================
+# Gradle (si jamais tu utilises Gradle)
+# ========================================
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ========================================
+# IntelliJ IDEA
+# ========================================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ========================================
+# Eclipse
+# ========================================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# ========================================
+# VS Code
+# ========================================
+.vscode/
+*.code-workspace
+.history/
+
+# ========================================
+# NetBeans
+# ========================================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ========================================
+# macOS
+# ========================================
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ========================================
+# Windows
+# ========================================
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ========================================
+# Linux
+# ========================================
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================================
+# Logs
+# ========================================
+*.log
+logs/
+spring.log
+
+# ========================================
+# Base de données H2 (si utilisée en dev)
+# ========================================
+*.db
+*.h2.db
+
+# ========================================
+# Configuration sensible
+# ========================================
+application-local.properties
+application-secret.properties
+**/application-prod.properties
+
+# ========================================
+# Uploads et fichiers temporaires
+# ========================================
+uploads/
+temp/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# ========================================
+# Compiled class files
+# ========================================
+*.class
+
+# ========================================
+# Package Files
+# ========================================
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# ========================================
+# virtual machine crash logs
+# ========================================
+hs_err_pid*
+replay_pid*
