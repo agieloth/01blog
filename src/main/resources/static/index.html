@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudentHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0b0d11;
+      --surface:  #13161d;
+      --border:   #1e2330;
+      --accent:   #5c6fff;
+      --accent2:  #a78bfa;
+      --success:  #34d399;
+      --error:    #f87171;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── GRADIENT BLOBS ── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--accent);  top: -200px; left: -200px; }
+    .blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -100px; }
+
+    /* ── LAYOUT ── */
+    .page { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    header {
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+    .logo span { color: var(--accent); }
+    .header-tag {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 100px;
+    }
+
+    /* ── MAIN CONTENT ── */
+    main {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 60px 24px;
+    }
+
+    /* ── AUTH CARD ── */
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-title {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+    .auth-sub {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 32px;
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── FORM ── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.92rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    input::placeholder { color: var(--muted); opacity: 0.6; }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(92, 111, 255, 0.15);
+    }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: var(--font-head);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn:hover { background: #4a5be8; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(92, 111, 255, 0.3); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-top: 16px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .alert.success { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--success); }
+    .alert.error   { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--error); }
+    .alert.show { display: block; }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; }
+    #dashboard.show { display: block; }
+    #auth-section.hidden { display: none; }
+
+    .dashboard-wrapper {
+      width: 100%;
+      max-width: 680px;
+      animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .welcome-banner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 36px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .avatar {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+    }
+    .welcome-text h2 {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .welcome-text p { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: rgba(92,111,255,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(92,111,255,0.3);
+      margin-top: 6px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .info-card-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .info-card-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    .token-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    .token-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .token-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--success); color: var(--success); }
+    .token-value {
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      word-break: break-all;
+      line-height: 1.6;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .logout-btn {
+      width: 100%;
+      padding: 12px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .logout-btn:hover { border-color: var(--error); color: var(--error); background: rgba(248,113,113,0.05); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 20px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-text { font-size: 0.78rem; color: var(--muted); }
+    .status-dot {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+    .dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <div class="page">
+    <header>
+      <div class="logo">Student<span>Hub</span></div>
+      <div class="header-tag">API v1 — localhost:8080</div>
+    </header>
+
+    <main>
+
+      <!-- ── AUTH SECTION ── -->
+      <div id="auth-section">
+        <div class="auth-card">
+          <div class="auth-title">Bienvenue 👋</div>
+          <div class="auth-sub">Connecte-toi ou crée un compte pour commencer.</div>
+
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('login')">Connexion</button>
+            <button class="tab" onclick="switchTab('register')">Inscription</button>
+          </div>
+
+          <!-- LOGIN -->
+          <div id="login-form">
+            <div class="form-group">
+              <label>Email ou username</label>
+              <input type="text" id="login-identifier" placeholder="john@example.com" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe</label>
+              <input type="password" id="login-password" placeholder="••••••••" />
+            </div>
+            <button class="btn" id="login-btn" onclick="handleLogin()">Se connecter</button>
+            <div class="alert" id="login-alert"></div>
+          </div>
+
+          <!-- REGISTER -->
+          <div id="register-form" style="display:none">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="reg-username" placeholder="johndoe" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="reg-email" placeholder="john@example.com" />
+            </div>
+            <div class="form-group">
+              <label>Mot de passe</label>
+              <input type="password" id="reg-password" placeholder="Min. 6 caractères" />
+            </div>
+            <button class="btn" id="register-btn" onclick="handleRegister()">Créer un compte</button>
+            <div class="alert" id="register-alert"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DASHBOARD ── -->
+      <div id="dashboard">
+        <div class="dashboard-wrapper">
+          <div class="welcome-banner">
+            <div class="avatar" id="user-avatar">?</div>
+            <div class="welcome-text">
+              <h2>Salut, <span id="user-username">—</span> !</h2>
+              <p>Authentification réussie ✓</p>
+              <div class="badge" id="user-role">USER</div>
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-card-label">ID Utilisateur</div>
+              <div class="info-card-value" id="user-id">—</div>
+            </div>
+            <div class="info-card">
+              <div class="info-card-label">Email</div>
+              <div class="info-card-value" id="user-email">—</div>
+            </div>
+          </div>
+
+          <div class="token-card">
+            <div class="token-header">
+              <div class="token-label">🔑 Token JWT (Bearer)</div>
+              <button class="copy-btn" id="copy-btn" onclick="copyToken()">Copier</button>
+            </div>
+            <div class="token-value" id="jwt-token">—</div>
+          </div>
+
+          <button class="logout-btn" onclick="handleLogout()">Se déconnecter</button>
+        </div>
+      </div>
+
+    </main>
+
+    <footer>
+      <div class="footer-text">StudentHub · Spring Boot 3.2.2 · PostgreSQL</div>
+      <div class="status-dot">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">Vérification...</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8080/api';
+    let currentToken = null;
+
+    // ── Vérifier que l'API est en ligne ──
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API}/auth/health`);
+        if (res.ok) {
+          document.getElementById('status-dot').classList.add('online');
+          document.getElementById('status-text').textContent = 'API connectée';
+        } else {
+          throw new Error();
+        }
+      } catch {
+        document.getElementById('status-text').textContent = 'API hors ligne';
+      }
+    }
+    checkHealth();
+
+    // ── Tabs ──
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('login-form').style.display    = isLogin ? 'block' : 'none';
+      document.getElementById('register-form').style.display = isLogin ? 'none'  : 'block';
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', isLogin ? i === 0 : i === 1);
+      });
+    }
+
+    // ── Helpers ──
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? `<span class="spinner"></span> Chargement...`
+        : btn.dataset.label;
+    }
+
+    function showAlert(id, message, type) {
+      const el = document.getElementById(id);
+      el.textContent = message;
+      el.className = `alert ${type} show`;
+    }
+
+    function hideAlert(id) {
+      document.getElementById(id).className = 'alert';
+    }
+
+    // ── Afficher le dashboard ──
+    function showDashboard(data) {
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('dashboard').classList.add('show');
+
+      document.getElementById('user-avatar').textContent  = data.username[0].toUpperCase();
+      document.getElementById('user-username').textContent = data.username;
+      document.getElementById('user-email').textContent    = data.email;
+      document.getElementById('user-id').textContent       = '#' + data.id;
+      document.getElementById('user-role').textContent     = data.role;
+      document.getElementById('jwt-token').textContent     = data.token;
+      currentToken = data.token;
+    }
+
+    // ── Logout ──
+    function handleLogout() {
+      currentToken = null;
+      document.getElementById('auth-section').classList.remove('hidden');
+      document.getElementById('dashboard').classList.remove('show');
+      // reset fields
+      ['login-identifier','login-password','reg-username','reg-email','reg-password']
+        .forEach(id => document.getElementById(id).value = '');
+      switchTab('login');
+    }
+
+    // ── Login ──
+    document.getElementById('login-btn').dataset.label = 'Se connecter';
+    async function handleLogin() {
+      const identifier = document.getElementById('login-identifier').value.trim();
+      const password   = document.getElementById('login-password').value;
+      hideAlert('login-alert');
+
+      if (!identifier || !password) {
+        showAlert('login-alert', 'Remplis tous les champs.', 'error');
+        return;
+      }
+
+      setLoading('login-btn', true);
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showDashboard(data);
+        } else {
+          showAlert('login-alert', data.message || 'Identifiants incorrects.', 'error');
+        }
+      } catch (e) {
+        showAlert('login-alert', 'Impossible de contacter l\'API. L\'app tourne ?', 'error');
+      } finally {
+        setLoading('login-btn', false);
+      }
+    }
+
+    // ── Register ──
+    document.getElementById('register-btn').dataset.label = 'Créer un compte';
+    async function handleRegister() {
+      const username = document.getElementById('reg-username').value.trim();
+      const email    = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      hideAlert('register-alert');
+
+      if (!username || !email || !password) {
+        showAlert('register-alert', 'Remplis tous les champs.', 'error');
+        return;
+      }
+
+      setLoading('register-btn', true);
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showDashboard(data);
+        } else {
+          // Afficher les erreurs de validation
+          if (data.errors) {
+            const msgs = Object.values(data.errors).join(' · ');
+            showAlert('register-alert', msgs, 'error');
+          } else {
+            showAlert('register-alert', data.message || 'Erreur lors de l\'inscription.', 'error');
+          }
+        }
+      } catch (e) {
+        showAlert('register-alert', 'Impossible de contacter l\'API. L\'app tourne ?', 'error');
+      } finally {
+        setLoading('register-btn', false);
+      }
+    }
+
+    // ── Copier le token ──
+    function copyToken() {
+      if (!currentToken) return;
+      navigator.clipboard.writeText(currentToken).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copié ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copier';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // ── Enter key support ──
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const loginVisible = document.getElementById('login-form').style.display !== 'none';
+      if (loginVisible) handleLogin();
+      else handleRegister();
+    });
+  </script>
+</body>
+</html>

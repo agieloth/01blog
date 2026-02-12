@@ -1,59 +1,28 @@
 package io.aotchoun.blog.dto.response;
 
 import io.aotchoun.blog.entity.Role;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * DTO pour la réponse d'authentification
- * 
- * Renvoyé après un login ou register réussi
- * Contient le token JWT et les infos de base de l'utilisateur
+ *
+ * Renvoyé après un login ou register réussi.
+ * Contient le token JWT et les infos de base de l'utilisateur.
+ *
+ * NOTE : Pas de champ "password" ici par sécurité !
  */
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class AuthResponse {
 
-    /**
-     * Token JWT
-     * 
-     * Le client devra envoyer ce token dans le header "Authorization"
-     * pour toutes les requêtes protégées :
-     * Authorization: Bearer <token>
-     */
     private String token;
-
-    /**
-     * Type de token (toujours "Bearer" pour JWT)
-     */
     private String type = "Bearer";
-
-    /**
-     * ID de l'utilisateur
-     */
     private Long id;
-
-    /**
-     * Username
-     */
     private String username;
-
-    /**
-     * Email
-     */
     private String email;
-
-    /**
-     * Rôle (USER ou ADMIN)
-     */
     private Role role;
 
-    /**
-     * Constructeur personnalisé (sans le type)
-     * Le type sera toujours "Bearer"
-     */
+    // Constructeur vide
+    public AuthResponse() {}
+
+    // Constructeur principal utilisé dans AuthService
     public AuthResponse(String token, Long id, String username, String email, Role role) {
         this.token = token;
         this.type = "Bearer";
@@ -63,9 +32,53 @@ public class AuthResponse {
         this.role = role;
     }
 
-    /**
-     * NOTE IMPORTANTE :
-     * On ne renvoie PAS le password ici !
-     * C'est pour ça qu'on utilise un DTO au lieu de l'entité User.
-     */
+    // Getters
+    public String getToken() {
+        return token;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    // Setters
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
 }
