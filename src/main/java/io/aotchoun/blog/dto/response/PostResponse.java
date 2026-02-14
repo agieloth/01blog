@@ -21,6 +21,9 @@ public class PostResponse {
     private String authorUsername;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private long likeCount;
+    private long commentCount;
+    private boolean likedByCurrentUser;
 
     public PostResponse() {}
 
@@ -33,15 +36,24 @@ public class PostResponse {
      * Utilisation : PostResponse.from(post)
      */
     public static PostResponse from(Post post) {
-        PostResponse response = new PostResponse();
-        response.id = post.getId();
-        response.title = post.getTitle();
-        response.content = post.getContent();
-        response.authorId = post.getAuthor().getId();
-        response.authorUsername = post.getAuthor().getUsername();
-        response.createdAt = post.getCreatedAt();
-        response.updatedAt = post.getUpdatedAt();
-        return response;
+        PostResponse r = new PostResponse();
+        r.id = post.getId();
+        r.title = post.getTitle();
+        r.content = post.getContent();
+        r.authorId = post.getAuthor().getId();
+        r.authorUsername = post.getAuthor().getUsername();
+        r.createdAt = post.getCreatedAt();
+        r.updatedAt = post.getUpdatedAt();
+        return r;
+    }
+
+    // Surcharge avec compteurs — utilisée dans PostService
+    public static PostResponse from(Post post, long likeCount, long commentCount, boolean likedByCurrentUser) {
+        PostResponse r = from(post);
+        r.likeCount = likeCount;
+        r.commentCount = commentCount;
+        r.likedByCurrentUser = likedByCurrentUser;
+        return r;
     }
 
     // Getters
@@ -52,6 +64,9 @@ public class PostResponse {
     public String getAuthorUsername() { return authorUsername; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public long getLikeCount() { return likeCount; }
+    public long getCommentCount() { return commentCount; }
+    public boolean isLikedByCurrentUser() { return likedByCurrentUser; }
 
     // Setters
     public void setId(Long id) { this.id = id; }
@@ -61,4 +76,7 @@ public class PostResponse {
     public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setLikeCount(long likeCount) { this.likeCount = likeCount; }
+    public void setCommentCount(long commentCount) { this.commentCount = commentCount; }
+    public void setLikedByCurrentUser(boolean likedByCurrentUser) { this.likedByCurrentUser = likedByCurrentUser; }
 }

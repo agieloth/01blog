@@ -4,9 +4,10 @@ import io.aotchoun.blog.dto.request.PostRequest;
 import io.aotchoun.blog.dto.response.PostResponse;
 import io.aotchoun.blog.entity.Post;
 import io.aotchoun.blog.entity.User;
-import io.aotchoun.blog.exception.BadRequestException;
 import io.aotchoun.blog.exception.ResourceNotFoundException;
 import io.aotchoun.blog.exception.UnauthorizedException;
+import io.aotchoun.blog.repository.CommentRepository;
+import io.aotchoun.blog.repository.LikeRepository;
 import io.aotchoun.blog.repository.PostRepository;
 import io.aotchoun.blog.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -30,10 +31,34 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
-    public PostService(PostRepository postRepository, UserRepository userRepository) {
+    public PostService(PostRepository postRepository, 
+                        UserRepository userRepository,
+                        LikeRepository likeRepository,
+                        CommentRepository commentRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
+        this.likeRepository = likeRepository;
+        this.commentRepository = commentRepository;
+    }
+
+    /**
+     * Enrichit un PostResponse avec les compteurs de likes et commentaires.
+     * username peut être null (utilisateur non connecté → likedByCurrentUser = false)
+     */
+    private PostResponse enrich(Post post, String username) {
+        long likes    = likeRepository.countByPostId(post.getId());
+        long comments = commentRepository.countByPostId(post.getId());
+        boolean liked = false;
+        if (username != null) {
+            var user = userRepository.findByUsername(username);
+            if (user.isPresent()) {
+                liked = likeRepository.existsByUserIdAndPostId(user.get().getId(), post.getId());
+            }
+        }
+        return PostResponse.from(post, likes, comments, liked);
     }
 
     /**
@@ -46,10 +71,10 @@ public class PostService {
      * On transforme chaque Post en PostResponse avec PostResponse.from()
      */
     @Transactional(readOnly = true)
-    public List<PostResponse> getAllPosts() {
+    public List<PostResponse> getAllPosts(String username) {
         return postRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(PostResponse::from)
+                .map(post -> enrich(post, username))
                 .collect(Collectors.toList());
     }
 
@@ -61,12 +86,10 @@ public class PostService {
      * @throws ResourceNotFoundException si le post n'existe pas
      */
     @Transactional(readOnly = true)
-    public PostResponse getPostById(Long id) {
+    public PostResponse getPostById(Long id, String username) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Post not found with id: " + id
-                ));
-        return PostResponse.from(post);
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+        return enrich(post, username);
     }
 
     /**
@@ -77,17 +100,11 @@ public class PostService {
      * @return PostResponse du post créé
      */
     public PostResponse createPost(PostRequest request, String username) {
-        // Récupérer l'utilisateur depuis la DB
         User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "User not found: " + username
-                ));
-
-        // Créer et sauvegarder le post
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         Post post = new Post(request.getTitle(), request.getContent(), author);
         post = postRepository.save(post);
-
-        return PostResponse.from(post);
+        return enrich(post, username);
     }
 
     /**
@@ -102,9 +119,7 @@ public class PostService {
      */
     public PostResponse updatePost(Long id, PostRequest request, String username) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Post not found with id: " + id
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
 
         // Vérifier que c'est bien l'auteur qui modifie
         // SÉCURITÉ : sans cette vérification, n'importe qui pourrait modifier n'importe quel post !
@@ -116,7 +131,7 @@ public class PostService {
         post.setContent(request.getContent());
         post = postRepository.save(post);
 
-        return PostResponse.from(post);
+        return enrich(post, username);
     }
 
     /**
@@ -129,9 +144,7 @@ public class PostService {
      */
     public void deletePost(Long id, String username) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Post not found with id: " + id
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
 
         // Vérifier que c'est bien l'auteur qui supprime
         if (!post.getAuthor().getUsername().equals(username)) {

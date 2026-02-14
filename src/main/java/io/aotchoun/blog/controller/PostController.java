@@ -37,8 +37,12 @@ public class PostController {
      * Public — retourne tous les posts
      */
     @GetMapping
-    public ResponseEntity<List<PostResponse>> getAllPosts() {
-        return ResponseEntity.ok(postService.getAllPosts());
+    public ResponseEntity<List<PostResponse>> getAllPosts(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        // username peut être null si l'utilisateur n'est pas connecté
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(postService.getAllPosts(username));
     }
 
     /**
@@ -46,8 +50,12 @@ public class PostController {
      * Public — retourne un post par son ID
      */
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> getPostById(@PathVariable Long id) {
-        return ResponseEntity.ok(postService.getPostById(id));
+    public ResponseEntity<PostResponse> getPostById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(postService.getPostById(id, username));
     }
 
     /**
@@ -77,8 +85,7 @@ public class PostController {
             @Valid @RequestBody PostRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        PostResponse post = postService.updatePost(id, request, userDetails.getUsername());
-        return ResponseEntity.ok(post);
+        return ResponseEntity.ok(postService.updatePost(id, request, userDetails.getUsername()));
     }
 
     /**

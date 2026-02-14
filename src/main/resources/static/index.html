@@ -17,7 +17,6 @@
         margin: 0;
         padding: 0;
       }
-
       :root {
         --bg: #0b0d11;
         --surface: #13161d;
@@ -32,6 +31,8 @@
         --success-bg: rgba(52, 211, 153, 0.1);
         --error: #f87171;
         --error-bg: rgba(248, 113, 113, 0.1);
+        --like: #f472b6;
+        --like-bg: rgba(244, 114, 182, 0.1);
         --text: #e8eaf0;
         --text2: #9ca3b0;
         --muted: #6b7280;
@@ -41,7 +42,6 @@
         --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
         --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
       }
-
       body {
         background: var(--bg);
         color: var(--text);
@@ -50,8 +50,6 @@
         line-height: 1.6;
         min-height: 100vh;
       }
-
-      /* ── NOISE OVERLAY ── */
       body::before {
         content: "";
         position: fixed;
@@ -60,8 +58,6 @@
         pointer-events: none;
         z-index: 0;
       }
-
-      /* ── GRADIENT BLOBS ── */
       .blob {
         position: fixed;
         border-radius: 50%;
@@ -85,15 +81,9 @@
         right: -100px;
       }
 
-      /* ── UTILITIES ── */
+      /* utils */
       .hidden {
         display: none !important;
-      }
-      .fade-in {
-        animation: fadeIn 0.35s ease both;
-      }
-      .slide-up {
-        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
       @keyframes fadeIn {
         from {
@@ -113,26 +103,35 @@
           transform: translateY(0);
         }
       }
-
-      /* ── SPINNER ── */
-      .spinner {
-        display: inline-block;
-        width: 15px;
-        height: 15px;
-        border: 2px solid rgba(255, 255, 255, 0.25);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 0.55s linear infinite;
-        vertical-align: middle;
-        margin-right: 6px;
-      }
       @keyframes spin {
         to {
           transform: rotate(360deg);
         }
       }
+      @keyframes bounce {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.4;
+        }
+        50% {
+          transform: scale(1.5);
+          opacity: 1;
+        }
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.55s linear infinite;
+        vertical-align: middle;
+        margin-right: 5px;
+      }
 
-      /* ── AUTH PAGE ── */
+      /* auth */
       #auth-page {
         min-height: 100vh;
         display: grid;
@@ -141,7 +140,6 @@
         position: relative;
         z-index: 1;
       }
-
       .auth-card {
         width: 100%;
         max-width: 420px;
@@ -174,8 +172,6 @@
         font-size: 0.88rem;
         margin-bottom: 28px;
       }
-
-      /* ── TABS ── */
       .tabs {
         display: flex;
         gap: 4px;
@@ -202,8 +198,6 @@
         color: var(--text);
         border: 1px solid var(--border);
       }
-
-      /* ── FORM ── */
       .form-group {
         margin-bottom: 16px;
       }
@@ -244,8 +238,6 @@
         border-color: var(--accent);
         box-shadow: 0 0 0 3px rgba(92, 111, 255, 0.15);
       }
-
-      /* ── BUTTONS ── */
       .btn {
         display: inline-flex;
         align-items: center;
@@ -303,8 +295,6 @@
         font-size: 0.8rem;
         border-radius: 7px;
       }
-
-      /* ── ALERTS ── */
       .alert {
         padding: 11px 14px;
         border-radius: 9px;
@@ -316,18 +306,13 @@
         display: block;
         animation: fadeIn 0.25s ease;
       }
-      .alert-success {
-        background: var(--success-bg);
-        border: 1px solid rgba(52, 211, 153, 0.25);
-        color: var(--success);
-      }
       .alert-error {
         background: var(--error-bg);
         border: 1px solid rgba(248, 113, 113, 0.25);
         color: var(--error);
       }
 
-      /* ── APP LAYOUT ── */
+      /* app */
       #app-page {
         min-height: 100vh;
         display: flex;
@@ -335,10 +320,8 @@
         position: relative;
         z-index: 1;
       }
-
-      /* ── NAVBAR ── */
       .navbar {
-        background: rgba(11, 13, 17, 0.8);
+        background: rgba(11, 13, 17, 0.85);
         backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border);
         padding: 0 40px;
@@ -364,11 +347,6 @@
         align-items: center;
         gap: 14px;
       }
-      .navbar-user {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
       .navbar-avatar {
         width: 34px;
         height: 34px;
@@ -385,10 +363,7 @@
       .navbar-username {
         font-size: 0.88rem;
         font-weight: 600;
-        color: var(--text);
       }
-
-      /* ── MAIN ── */
       .app-body {
         flex: 1;
         max-width: 740px;
@@ -396,8 +371,6 @@
         margin: 0 auto;
         padding: 44px 24px;
       }
-
-      /* ── SECTION HEADER ── */
       .section-header {
         display: flex;
         align-items: center;
@@ -416,7 +389,7 @@
         margin-top: 3px;
       }
 
-      /* ── CREATE PROMPT ── */
+      /* create prompt */
       .create-prompt {
         background: var(--surface);
         border: 1px dashed var(--border2);
@@ -452,7 +425,7 @@
         font-size: 0.88rem;
       }
 
-      /* ── POST FORM ── */
+      /* post form */
       .post-form-card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -471,11 +444,6 @@
         text-transform: uppercase;
         margin-bottom: 16px;
       }
-      #post-title-input {
-        font-size: 1rem;
-        font-weight: 200;
-        letter-spacing: -0.01em;
-      }
       #post-content-input {
         min-height: 110px;
         font-size: 0.9rem;
@@ -488,7 +456,7 @@
         margin-top: 16px;
       }
 
-      /* ── POST CARD ── */
+      /* post card */
       .post-card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -504,7 +472,6 @@
         border-color: var(--border2);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
       }
-
       .post-header {
         display: flex;
         align-items: flex-start;
@@ -565,7 +532,6 @@
       .post-card:hover .post-actions {
         opacity: 1;
       }
-
       .post-title {
         font-family: var(--font-head);
         font-size: 1.2rem;
@@ -595,15 +561,44 @@
         white-space: pre-wrap;
       }
 
+      /* post footer */
       .post-footer {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 16px;
         margin-top: 16px;
         padding-top: 14px;
         border-top: 1px solid var(--border);
       }
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: var(--muted);
+        padding: 5px 10px;
+        border-radius: 7px;
+        transition: all 0.2s;
+      }
+      .action-btn:hover {
+        background: var(--surface2);
+        color: var(--text2);
+      }
+      .action-btn.liked {
+        color: var(--like);
+      }
+      .action-btn.liked:hover {
+        background: var(--like-bg);
+      }
+      .action-btn.comments-open {
+        color: var(--accent);
+      }
       .read-more {
+        margin-left: auto;
         background: none;
         border: none;
         color: var(--accent);
@@ -611,18 +606,152 @@
         font-size: 0.79rem;
         font-weight: 600;
         cursor: pointer;
-        padding: 0;
-        transition: opacity 0.2s;
+        padding: 5px 10px;
+        border-radius: 7px;
+        transition: background 0.2s;
       }
       .read-more:hover {
-        opacity: 0.7;
-      }
-      .post-id {
-        font-size: 0.72rem;
-        color: var(--muted);
+        background: var(--accent-light);
       }
 
-      /* ── EMPTY STATE ── */
+      /* comments section */
+      .comments-section {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+        animation: slideUp 0.25s ease;
+      }
+      .comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .comment-item {
+        display: flex;
+        gap: 10px;
+      }
+      .comment-avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        background: var(--surface2);
+        color: var(--muted);
+        font-family: var(--font-head);
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .comment-avatar.own {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: #fff;
+      }
+      .comment-body {
+        flex: 1;
+        background: var(--surface2);
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+      .comment-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .comment-author {
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .comment-date {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+      .comment-text {
+        font-size: 0.85rem;
+        color: var(--text2);
+        line-height: 1.6;
+      }
+      .delete-comment-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 5px;
+        transition: all 0.2s;
+        opacity: 0;
+      }
+      .comment-body:hover .delete-comment-btn {
+        opacity: 1;
+      }
+      .delete-comment-btn:hover {
+        color: var(--error);
+        background: var(--error-bg);
+      }
+      .comment-input-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+      .comment-input-row .comment-avatar {
+        margin-top: 10px;
+      }
+      .comment-input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 9px 13px;
+        color: var(--text);
+        font-family: var(--font-body);
+        font-size: 0.85rem;
+        outline: none;
+        resize: none;
+        transition: border-color 0.2s;
+        min-height: 38px;
+      }
+      .comment-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(92, 111, 255, 0.15);
+      }
+      .comment-submit {
+        padding: 9px 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-family: var(--font-head);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        white-space: nowrap;
+      }
+      .comment-submit:hover {
+        background: var(--accent-hover);
+      }
+      .comment-submit:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .comments-loading {
+        display: flex;
+        justify-content: center;
+        padding: 16px 0;
+      }
+      .no-comments {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.83rem;
+        padding: 12px 0;
+      }
+
+      /* empty & loading */
       .empty-state {
         text-align: center;
         padding: 80px 24px;
@@ -642,8 +771,6 @@
         font-size: 0.85rem;
         line-height: 1.6;
       }
-
-      /* ── LOADING ── */
       .posts-loading {
         display: flex;
         justify-content: center;
@@ -666,19 +793,8 @@
       .loading-dots span:nth-child(3) {
         animation-delay: 0.3s;
       }
-      @keyframes bounce {
-        0%,
-        100% {
-          transform: scale(1);
-          opacity: 0.4;
-        }
-        50% {
-          transform: scale(1.5);
-          opacity: 1;
-        }
-      }
 
-      /* ── MODAL ── */
+      /* modal */
       .modal-overlay {
         position: fixed;
         inset: 0;
@@ -719,7 +835,7 @@
         justify-content: flex-end;
       }
 
-      /* ── TOAST ── */
+      /* toast */
       .toast {
         position: fixed;
         bottom: 28px;
@@ -751,7 +867,6 @@
         font-size: 1rem;
       }
 
-      /* ── RESPONSIVE ── */
       @media (max-width: 640px) {
         .navbar {
           padding: 0 18px;
@@ -769,9 +884,7 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <!-- ══════════════════════════════════════
-     AUTH PAGE
-══════════════════════════════════════ -->
+    <!-- AUTH -->
     <div id="auth-page">
       <div class="auth-card">
         <div class="auth-logo">Student<span>Hub</span></div>
@@ -779,7 +892,6 @@
         <div class="auth-sub">
           Connecte-toi ou crée un compte pour commencer.
         </div>
-
         <div class="tabs">
           <button class="tab-btn active" onclick="switchAuthTab('login')">
             Connexion
@@ -788,36 +900,36 @@
             Inscription
           </button>
         </div>
-
-        <!-- LOGIN -->
         <div id="login-form">
           <div class="form-group">
-            <label>Email ou username</label>
-            <input type="text" id="login-id" placeholder="john@example.com" />
+            <label>Email ou username</label
+            ><input type="text" id="login-id" placeholder="john@example.com" />
           </div>
           <div class="form-group">
-            <label>Mot de passe</label>
-            <input type="password" id="login-pw" placeholder="••••••••" />
+            <label>Mot de passe</label
+            ><input type="password" id="login-pw" placeholder="••••••••" />
           </div>
           <button class="btn btn-primary" id="login-btn" onclick="doLogin()">
             Se connecter
           </button>
           <div class="alert alert-error" id="login-error"></div>
         </div>
-
-        <!-- REGISTER -->
         <div id="register-form" class="hidden">
           <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="reg-user" placeholder="johndoe" />
+            <label>Username</label
+            ><input type="text" id="reg-user" placeholder="johndoe" />
           </div>
           <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="reg-email" placeholder="john@example.com" />
+            <label>Email</label
+            ><input
+              type="email"
+              id="reg-email"
+              placeholder="john@example.com"
+            />
           </div>
           <div class="form-group">
-            <label>Mot de passe</label>
-            <input
+            <label>Mot de passe</label
+            ><input
               type="password"
               id="reg-pw"
               placeholder="Min. 6 caractères"
@@ -835,14 +947,12 @@
       </div>
     </div>
 
-    <!-- ══════════════════════════════════════
-     APP PAGE
-══════════════════════════════════════ -->
+    <!-- APP -->
     <div id="app-page" class="hidden">
       <nav class="navbar">
         <div class="navbar-brand">Student<span>Hub</span></div>
         <div class="navbar-right">
-          <div class="navbar-user">
+          <div style="display: flex; align-items: center; gap: 10px">
             <div class="navbar-avatar" id="nav-avatar">?</div>
             <span class="navbar-username" id="nav-username">—</span>
           </div>
@@ -851,7 +961,6 @@
           </button>
         </div>
       </nav>
-
       <main class="app-body">
         <div class="section-header">
           <div>
@@ -859,8 +968,6 @@
             <div class="section-count" id="post-count"></div>
           </div>
         </div>
-
-        <!-- CREATE PROMPT -->
         <div
           class="create-prompt"
           onclick="showCreateForm()"
@@ -871,21 +978,19 @@
             Quoi de neuf ? Publie un article…
           </div>
         </div>
-
-        <!-- POST FORM -->
         <div class="post-form-card hidden" id="post-form-card">
           <div class="post-form-label" id="form-mode-label">Nouveau post</div>
           <div class="form-group">
-            <label>Titre</label>
-            <input
+            <label>Titre</label
+            ><input
               type="text"
               id="post-title-input"
               placeholder="Un titre accrocheur…"
             />
           </div>
           <div class="form-group">
-            <label>Contenu</label>
-            <textarea
+            <label>Contenu</label
+            ><textarea
               id="post-content-input"
               placeholder="Exprime-toi…"
             ></textarea>
@@ -904,8 +1009,6 @@
           </div>
           <div class="alert alert-error hidden" id="form-error"></div>
         </div>
-
-        <!-- POSTS -->
         <div id="posts-container">
           <div class="posts-loading">
             <div class="loading-dots">
@@ -916,14 +1019,13 @@
       </main>
     </div>
 
-    <!-- ══════════════════════════════════════
-     DELETE MODAL
-══════════════════════════════════════ -->
+    <!-- DELETE POST MODAL -->
     <div class="modal-overlay hidden" id="delete-modal">
       <div class="modal">
         <div class="modal-title">Supprimer ce post ?</div>
         <div class="modal-text">
-          Cette action est irréversible. Le post sera définitivement supprimé.
+          Cette action est irréversible. Les commentaires et likes seront aussi
+          supprimés.
         </div>
         <div class="modal-actions">
           <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">
@@ -953,47 +1055,18 @@
         posts: [],
         editingPostId: null,
         deletingPostId: null,
+        openComments: {},
       };
 
       const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      const initial = (u) => (u || "?")[0].toUpperCase();
 
-      // ── TOAST ──
-      function toast(msg, type = "success") {
-        const el = document.createElement("div");
-        el.className = `toast ${type}`;
-        el.textContent = msg;
-        document.body.appendChild(el);
-        setTimeout(() => {
-          el.style.transition = "opacity .3s";
-          el.style.opacity = "0";
-        }, 2500);
-        setTimeout(() => el.remove(), 2800);
-      }
-
-      // ── LOADING BUTTON ──
-      function setLoading(id, loading, label) {
-        const b = $(id);
-        b.disabled = loading;
-        b.innerHTML = loading
-          ? `<span class="spinner"></span> Chargement…`
-          : label;
-      }
-
-      // ── ALERTS ──
-      function showAlert(id, msg) {
-        const el = $(id);
-        el.textContent = msg;
-        el.className = "alert alert-error show";
-      }
-      function hideAlert(id) {
-        const el = $(id);
-        if (el) {
-          el.textContent = "";
-          el.className = "alert alert-error";
-        }
-      }
-
-      // ── DATE ──
       function formatDate(s) {
         const d = new Date(s),
           diff = (Date.now() - d) / 1000;
@@ -1007,30 +1080,51 @@
         });
       }
 
-      function esc(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
-      function initial(u) {
-        return (u || "?")[0].toUpperCase();
+      function toast(msg, type = "success") {
+        document.querySelector(".toast")?.remove();
+        const el = document.createElement("div");
+        el.className = `toast ${type}`;
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(() => {
+          el.style.transition = "opacity .3s";
+          el.style.opacity = "0";
+        }, 2500);
+        setTimeout(() => el.remove(), 2800);
       }
 
-      // ── AUTH TABS ──
+      function setLoading(id, loading, label) {
+        const b = $(id);
+        b.disabled = loading;
+        b.innerHTML = loading
+          ? `<span class="spinner"></span> Chargement…`
+          : label;
+      }
+      function showAlert(id, msg) {
+        const el = $(id);
+        el.textContent = msg;
+        el.className = "alert alert-error show";
+      }
+      function hideAlert(id) {
+        const el = $(id);
+        if (el) {
+          el.textContent = "";
+          el.className = "alert alert-error";
+        }
+      }
+
+      // ── AUTH ──
       function switchAuthTab(tab) {
-        const login = tab === "login";
-        $("login-form").classList.toggle("hidden", !login);
-        $("register-form").classList.toggle("hidden", login);
+        const l = tab === "login";
+        $("login-form").classList.toggle("hidden", !l);
+        $("register-form").classList.toggle("hidden", l);
         document
           .querySelectorAll(".tab-btn")
           .forEach((b, i) =>
-            b.classList.toggle("active", login ? i === 0 : i === 1),
+            b.classList.toggle("active", l ? i === 0 : i === 1),
           );
       }
 
-      // ── LOGIN ──
       async function doLogin() {
         const identifier = $("login-id").value.trim(),
           password = $("login-pw").value;
@@ -1060,7 +1154,6 @@
         }
       }
 
-      // ── REGISTER ──
       async function doRegister() {
         const username = $("reg-user").value.trim(),
           email = $("reg-email").value.trim(),
@@ -1079,12 +1172,13 @@
           });
           const data = await res.json();
           if (res.ok) onAuthSuccess(data);
-          else {
-            const msg = data.errors
-              ? Object.values(data.errors).join(" · ")
-              : data.message || "Erreur.";
-            showAlert("register-error", msg);
-          }
+          else
+            showAlert(
+              "register-error",
+              data.errors
+                ? Object.values(data.errors).join(" · ")
+                : data.message || "Erreur.",
+            );
         } catch {
           showAlert("register-error", "Impossible de contacter l'API.");
         } finally {
@@ -1092,7 +1186,6 @@
         }
       }
 
-      // ── AUTH SUCCESS ──
       function onAuthSuccess(data) {
         state.token = data.token;
         state.user = {
@@ -1112,7 +1205,6 @@
         loadPosts();
       }
 
-      // ── LOGOUT ──
       function doLogout() {
         state = {
           token: null,
@@ -1120,6 +1212,7 @@
           posts: [],
           editingPostId: null,
           deletingPostId: null,
+          openComments: {},
         };
         $("app-page").classList.add("hidden");
         $("auth-page").classList.remove("hidden");
@@ -1130,22 +1223,25 @@
         switchAuthTab("login");
       }
 
-      // ── LOAD POSTS ──
+      // ── POSTS ──
       async function loadPosts() {
         $("posts-container").innerHTML =
           `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
         try {
-          const res = await fetch(`${API}/posts`);
+          const res = await fetch(`${API}/posts`, {
+            headers: state.token
+              ? { Authorization: `Bearer ${state.token}` }
+              : {},
+          });
           if (!res.ok) throw new Error();
           state.posts = await res.json();
           renderPosts();
         } catch {
           $("posts-container").innerHTML =
-            `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur de chargement</div><div class="empty-text">Impossible de récupérer les posts.</div></div>`;
+            `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur de chargement</div></div>`;
         }
       }
 
-      // ── RENDER POSTS ──
       function renderPosts() {
         const n = state.posts.length;
         $("post-count").textContent =
@@ -1158,9 +1254,10 @@
         $("posts-container").innerHTML = state.posts
           .map((post, i) => {
             const own = state.user && post.authorId === state.user.id;
-            const delay = Math.min(i * 0.05, 0.4);
+            const liked = post.likedByCurrentUser;
+            const commentsOpen = state.openComments[post.id];
             return `
-    <div class="post-card" id="post-${post.id}" style="animation-delay:${delay}s">
+    <div class="post-card" id="post-${post.id}" style="animation-delay:${Math.min(i * 0.05, 0.4)}s">
       <div class="post-header">
         <div class="post-meta">
           <div class="post-avatar ${own ? "own" : ""}">${initial(post.authorUsername)}</div>
@@ -1182,12 +1279,23 @@
       <div class="post-preview" id="preview-${post.id}">${esc(post.content)}</div>
       <div class="post-full hidden" id="full-${post.id}">${esc(post.content)}</div>
       <div class="post-footer">
+        <button class="action-btn ${liked ? "liked" : ""}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
+          ${liked ? "❤️" : "🤍"} <span id="like-count-${post.id}">${post.likeCount}</span>
+        </button>
+        <button class="action-btn ${commentsOpen ? "comments-open" : ""}" id="comment-toggle-${post.id}" onclick="toggleComments(${post.id})">
+          💬 <span id="comment-count-${post.id}">${post.commentCount}</span>
+        </button>
         <button class="read-more" id="readmore-${post.id}" onclick="toggleExpand(${post.id})">Lire la suite →</button>
-        <span class="post-id">ID #${post.id}</span>
       </div>
+      <div class="comments-section hidden" id="comments-${post.id}"></div>
     </div>`;
           })
           .join("");
+
+        // Ré-ouvrir les sections commentaires qui étaient ouvertes avant le reload
+        Object.keys(state.openComments).forEach((postId) => {
+          if (state.openComments[postId]) loadComments(Number(postId));
+        });
       }
 
       // ── EXPAND ──
@@ -1201,7 +1309,172 @@
         b.textContent = exp ? "← Réduire" : "Lire la suite →";
       }
 
-      // ── CREATE FORM ──
+      // ── LIKES ──
+      async function toggleLike(postId) {
+        if (!state.token) {
+          toast("Connecte-toi pour liker.", "error");
+          return;
+        }
+        const btn = $(`like-btn-${postId}`);
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API}/posts/${postId}/like`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${state.token}` },
+          });
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          // Mettre à jour l'état local
+          const post = state.posts.find((p) => p.id === postId);
+          if (post) {
+            post.likeCount = data.likeCount;
+            post.likedByCurrentUser = data.likedByCurrentUser;
+          }
+          // Mettre à jour le DOM sans recharger toute la liste
+          $(`like-count-${postId}`).textContent = data.likeCount;
+          btn.className = `action-btn ${data.likedByCurrentUser ? "liked" : ""}`;
+          btn.innerHTML = `${data.likedByCurrentUser ? "❤️" : "🤍"} <span id="like-count-${postId}">${data.likeCount}</span>`;
+        } catch {
+          toast("Erreur.", "error");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // ── COMMENTS ──
+      function toggleComments(postId) {
+        const section = $(`comments-${postId}`);
+        const btn = $(`comment-toggle-${postId}`);
+        const isOpen = !section.classList.contains("hidden");
+        if (isOpen) {
+          section.classList.add("hidden");
+          btn.classList.remove("comments-open");
+          state.openComments[postId] = false;
+        } else {
+          section.classList.remove("hidden");
+          btn.classList.add("comments-open");
+          state.openComments[postId] = true;
+          loadComments(postId);
+        }
+      }
+
+      async function loadComments(postId) {
+        const section = $(`comments-${postId}`);
+        section.innerHTML = `<div class="comments-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+        try {
+          const res = await fetch(`${API}/posts/${postId}/comments`);
+          const comments = await res.json();
+          renderComments(postId, comments);
+        } catch {
+          section.innerHTML = `<div class="no-comments">Erreur lors du chargement des commentaires.</div>`;
+        }
+      }
+
+      function renderComments(postId, comments) {
+        const section = $(`comments-${postId}`);
+        const myInitial = state.user ? initial(state.user.username) : "?";
+        const listHtml =
+          comments.length === 0
+            ? `<div class="no-comments">Aucun commentaire. Sois le premier !</div>`
+            : comments
+                .map((c) => {
+                  const own = state.user && c.authorId === state.user.id;
+                  return `
+        <div class="comment-item" id="comment-item-${c.id}">
+          <div class="comment-avatar ${own ? "own" : ""}">${initial(c.authorUsername)}</div>
+          <div class="comment-body">
+            <div class="comment-header">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="comment-author">${esc(c.authorUsername)}</span>
+                <span class="comment-date">${formatDate(c.createdAt)}</span>
+              </div>
+              ${own ? `<button class="delete-comment-btn" onclick="deleteComment(${postId},${c.id})" title="Supprimer">✕</button>` : ""}
+            </div>
+            <div class="comment-text">${esc(c.content)}</div>
+          </div>
+        </div>`;
+                })
+                .join("");
+
+        section.innerHTML = `
+    <div class="comments-list">${listHtml}</div>
+    ${
+      state.token
+        ? `
+    <div class="comment-input-row">
+      <div class="comment-avatar own">${myInitial}</div>
+      <textarea class="comment-input" id="comment-input-${postId}" placeholder="Ajouter un commentaire…" rows="1"
+        onkeydown="handleCommentKey(event,${postId})"></textarea>
+      <button class="comment-submit" id="comment-submit-${postId}" onclick="submitComment(${postId})">Envoyer</button>
+    </div>`
+        : '<div class="no-comments">Connecte-toi pour commenter.</div>'
+    }`;
+      }
+
+      function handleCommentKey(event, postId) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          submitComment(postId);
+        }
+      }
+
+      async function submitComment(postId) {
+        const input = $(`comment-input-${postId}`);
+        const content = input.value.trim();
+        if (!content) return;
+        const btn = $(`comment-submit-${postId}`);
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        try {
+          const res = await fetch(`${API}/posts/${postId}/comments`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${state.token}`,
+            },
+            body: JSON.stringify({ content }),
+          });
+          if (!res.ok) throw new Error();
+          input.value = "";
+          // Recharger les commentaires et incrémenter le compteur
+          const post = state.posts.find((p) => p.id === postId);
+          if (post) post.commentCount++;
+          $(`comment-count-${postId}`).textContent = post
+            ? post.commentCount
+            : "";
+          loadComments(postId);
+        } catch {
+          toast("Erreur lors de l'envoi.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Envoyer";
+        }
+      }
+
+      async function deleteComment(postId, commentId) {
+        try {
+          const res = await fetch(
+            `${API}/posts/${postId}/comments/${commentId}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${state.token}` },
+            },
+          );
+          if (res.ok || res.status === 204) {
+            const post = state.posts.find((p) => p.id === postId);
+            if (post && post.commentCount > 0) post.commentCount--;
+            $(`comment-count-${postId}`).textContent = post
+              ? post.commentCount
+              : "";
+            loadComments(postId);
+            toast("Commentaire supprimé.");
+          }
+        } catch {
+          toast("Erreur.", "error");
+        }
+      }
+
+      // ── POST FORM ──
       function showCreateForm() {
         state.editingPostId = null;
         $("form-mode-label").textContent = "Nouveau post";
@@ -1218,8 +1491,6 @@
         $("create-prompt").classList.remove("hidden");
         state.editingPostId = null;
       }
-
-      // ── EDIT ──
       function startEdit(id) {
         const post = state.posts.find((p) => p.id === id);
         if (!post) return;
@@ -1237,8 +1508,6 @@
         $("post-title-input").focus();
         hideAlert("form-error");
       }
-
-      // ── SUBMIT ──
       async function submitPost() {
         const title = $("post-title-input").value.trim(),
           content = $("post-content-input").value.trim();
@@ -1250,32 +1519,30 @@
           return;
         }
         const isEdit = state.editingPostId !== null;
-        const url = isEdit
-          ? `${API}/posts/${state.editingPostId}`
-          : `${API}/posts`;
-        const method = isEdit ? "PUT" : "POST";
         const label = isEdit ? "Enregistrer" : "Publier";
         setLoading("form-submit-btn", true, label);
         try {
-          const res = await fetch(url, {
-            method,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${state.token}`,
+          const res = await fetch(
+            isEdit ? `${API}/posts/${state.editingPostId}` : `${API}/posts`,
+            {
+              method: isEdit ? "PUT" : "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${state.token}`,
+              },
+              body: JSON.stringify({ title, content }),
             },
-            body: JSON.stringify({ title, content }),
-          });
+          );
           const data = await res.json();
           if (res.ok) {
             hidePostForm();
             toast(isEdit ? "Post modifié !" : "Post publié !");
             await loadPosts();
           } else {
-            const msg = data.errors
+            const el = $("form-error");
+            el.textContent = data.errors
               ? Object.values(data.errors).join(" · ")
               : data.message || "Erreur.";
-            const el = $("form-error");
-            el.textContent = msg;
             el.className = "alert alert-error show";
           }
         } catch {

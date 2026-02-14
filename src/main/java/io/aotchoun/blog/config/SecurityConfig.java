@@ -48,30 +48,20 @@ public class SecurityConfig {
         http
             // Désactive CSRF (inutile avec JWT stateless)
             .csrf(csrf -> csrf.disable())
-
-            // Règles d'autorisation par route
             .authorizeHttpRequests(auth -> auth
-
-                // Routes publiques (pas besoin de token)
-                .requestMatchers("/api/auth/**").permitAll()    // login, register, health
-                .requestMatchers("/", "/index.html").permitAll() // frontend
-
-                // Routes des posts : lecture publique, écriture protégée
+                // Auth — public
+                .requestMatchers("/api/auth/**").permitAll()
+                // Frontend
+                .requestMatchers("/", "/index.html").permitAll()
+                // Posts — lecture publique, écriture protégée
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
-
-                // Toutes les autres routes nécessitent un token valide
+                // Commentaires — lecture publique, écriture protégée
+                .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                // Tout le reste — token obligatoire
                 .anyRequest().authenticated()
             )
-
-            // STATELESS : pas de sessions HTTP, chaque requête doit avoir son token
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-
-            // Fournisseur d'authentification (vérifie username/password)
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
-
-            // Ajoute notre filtre JWT avant le filtre d'auth standard de Spring
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -97,9 +87,7 @@ public class SecurityConfig {
      * Permet d'injecter le manager dans d'autres services si besoin.
      */
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config
-    ) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
