@@ -9,6 +9,9 @@
       href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
       rel="stylesheet"
     />
+    <!-- SockJS + STOMP pour WebSocket -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <style>
       *,
       *::before,
@@ -81,7 +84,6 @@
         right: -100px;
       }
 
-      /* utils */
       .hidden {
         display: none !important;
       }
@@ -119,6 +121,15 @@
           opacity: 1;
         }
       }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
       .spinner {
         display: inline-block;
         width: 14px;
@@ -131,7 +142,7 @@
         margin-right: 5px;
       }
 
-      /* auth */
+      /* AUTH */
       #auth-page {
         min-height: 100vh;
         display: grid;
@@ -312,7 +323,7 @@
         color: var(--error);
       }
 
-      /* app */
+      /* APP */
       #app-page {
         min-height: 100vh;
         display: flex;
@@ -364,6 +375,21 @@
         font-size: 0.88rem;
         font-weight: 600;
       }
+
+      /* WS indicator */
+      .ws-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--muted);
+        display: inline-block;
+        transition: background 0.3s;
+      }
+      .ws-dot.connected {
+        background: var(--success);
+        animation: pulse 2s infinite;
+      }
+
       .app-body {
         flex: 1;
         max-width: 740px;
@@ -389,7 +415,6 @@
         margin-top: 3px;
       }
 
-      /* create prompt */
       .create-prompt {
         background: var(--surface);
         border: 1px dashed var(--border2);
@@ -425,7 +450,6 @@
         font-size: 0.88rem;
       }
 
-      /* post form */
       .post-form-card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -456,7 +480,7 @@
         margin-top: 16px;
       }
 
-      /* post card */
+      /* POST CARD */
       .post-card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -471,6 +495,19 @@
       .post-card:hover {
         border-color: var(--border2);
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+      }
+      .post-card.new-flash {
+        animation: newFlash 0.8s ease;
+      }
+      @keyframes newFlash {
+        0% {
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px rgba(92, 111, 255, 0.2);
+        }
+        100% {
+          border-color: var(--border);
+          box-shadow: none;
+        }
       }
       .post-header {
         display: flex;
@@ -560,12 +597,10 @@
         line-height: 1.75;
         white-space: pre-wrap;
       }
-
-      /* post footer */
       .post-footer {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
         margin-top: 16px;
         padding-top: 14px;
         border-top: 1px solid var(--border);
@@ -614,7 +649,7 @@
         background: var(--accent-light);
       }
 
-      /* comments section */
+      /* COMMENTS */
       .comments-section {
         margin-top: 16px;
         border-top: 1px solid var(--border);
@@ -713,7 +748,6 @@
         outline: none;
         resize: none;
         transition: border-color 0.2s;
-        min-height: 38px;
       }
       .comment-input:focus {
         border-color: var(--accent);
@@ -739,11 +773,6 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .comments-loading {
-        display: flex;
-        justify-content: center;
-        padding: 16px 0;
-      }
       .no-comments {
         text-align: center;
         color: var(--muted);
@@ -751,7 +780,6 @@
         padding: 12px 0;
       }
 
-      /* empty & loading */
       .empty-state {
         text-align: center;
         padding: 80px 24px;
@@ -794,7 +822,6 @@
         animation-delay: 0.3s;
       }
 
-      /* modal */
       .modal-overlay {
         position: fixed;
         inset: 0;
@@ -835,7 +862,6 @@
         justify-content: flex-end;
       }
 
-      /* toast */
       .toast {
         position: fixed;
         bottom: 28px;
@@ -952,6 +978,7 @@
       <nav class="navbar">
         <div class="navbar-brand">Student<span>Hub</span></div>
         <div class="navbar-right">
+          <span class="ws-dot" id="ws-dot" title="Temps réel"></span>
           <div style="display: flex; align-items: center; gap: 10px">
             <div class="navbar-avatar" id="nav-avatar">?</div>
             <span class="navbar-username" id="nav-username">—</span>
@@ -1019,14 +1046,11 @@
       </main>
     </div>
 
-    <!-- DELETE POST MODAL -->
+    <!-- DELETE MODAL -->
     <div class="modal-overlay hidden" id="delete-modal">
       <div class="modal">
         <div class="modal-title">Supprimer ce post ?</div>
-        <div class="modal-text">
-          Cette action est irréversible. Les commentaires et likes seront aussi
-          supprimés.
-        </div>
+        <div class="modal-text">Cette action est irréversible.</div>
         <div class="modal-actions">
           <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">
             Annuler
@@ -1049,6 +1073,9 @@
 
     <script>
       const API = "http://localhost:8080/api";
+      const WS_URL = "http://localhost:8080/ws";
+      const STORAGE_KEY = "studenthub_session";
+
       let state = {
         token: null,
         user: null,
@@ -1056,6 +1083,7 @@
         editingPostId: null,
         deletingPostId: null,
         openComments: {},
+        stompClient: null,
       };
 
       const $ = (id) => document.getElementById(id);
@@ -1113,7 +1141,183 @@
         }
       }
 
-      // ── AUTH ──
+      // ══════════════════════════════════
+      // PERSISTANCE localStorage
+      // ══════════════════════════════════
+      function saveSession() {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            token: state.token,
+            user: state.user,
+          }),
+        );
+      }
+
+      function loadSession() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          const session = JSON.parse(raw);
+          // Vérifier que les données sont complètes
+          if (session.token && session.user) return session;
+        } catch {}
+        return null;
+      }
+
+      function clearSession() {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      // ══════════════════════════════════
+      // WEBSOCKET (STOMP)
+      // ══════════════════════════════════
+      function connectWebSocket() {
+        const socket = new SockJS(WS_URL);
+        state.stompClient = Stomp.over(socket);
+        state.stompClient.debug = null; // Désactiver les logs STOMP en console
+
+        state.stompClient.connect(
+          {},
+          () => {
+            // Connexion établie
+            $("ws-dot").classList.add("connected");
+
+            // 1. S'abonner aux événements de posts (créations, modifs, suppressions)
+            state.stompClient.subscribe("/topic/posts", (msg) => {
+              const event = JSON.parse(msg.body);
+              handlePostEvent(event);
+            });
+
+            // 2. S'abonner aux likes
+            state.stompClient.subscribe("/topic/likes", (msg) => {
+              const update = JSON.parse(msg.body);
+              handleLikeUpdate(update);
+            });
+          },
+          () => {
+            // Déconnecté — petit point gris, on réessaie dans 3s
+            $("ws-dot").classList.remove("connected");
+            setTimeout(connectWebSocket, 3000);
+          },
+        );
+      }
+
+      function disconnectWebSocket() {
+        if (state.stompClient && state.stompClient.connected) {
+          state.stompClient.disconnect();
+        }
+        state.stompClient = null;
+        $("ws-dot").classList.remove("connected");
+      }
+
+      // S'abonner aux commentaires d'un post spécifique
+      function subscribeToPostComments(postId) {
+        if (!state.stompClient || !state.stompClient.connected) return;
+        state.stompClient.subscribe(`/topic/comments/${postId}`, (msg) => {
+          const event = JSON.parse(msg.body);
+          handleCommentEvent(postId, event);
+        });
+      }
+
+      // ══════════════════════════════════
+      // HANDLERS TEMPS RÉEL
+      // ══════════════════════════════════
+      function handlePostEvent(event) {
+        switch (event.type) {
+          case "POST_CREATED": {
+            const post = event.data;
+            // Ne pas ajouter si c'est notre propre post (on l'a déjà via loadPosts)
+            if (state.user && post.authorId === state.user.id) return;
+            // Ajouter en tête de liste
+            state.posts.unshift(post);
+            prependPostCard(post);
+            updatePostCount();
+            toast(`✍️ ${post.authorUsername} a publié un nouveau post`);
+            break;
+          }
+          case "POST_UPDATED": {
+            const updated = event.data;
+            const idx = state.posts.findIndex((p) => p.id === updated.id);
+            if (idx !== -1)
+              state.posts[idx] = { ...state.posts[idx], ...updated };
+            updatePostCard(updated);
+            break;
+          }
+          case "POST_DELETED": {
+            const id = event.data;
+            state.posts = state.posts.filter((p) => p.id !== id);
+            const card = $(`post-${id}`);
+            if (card) {
+              card.style.transition = "opacity .3s";
+              card.style.opacity = "0";
+              setTimeout(() => card.remove(), 300);
+            }
+            updatePostCount();
+            break;
+          }
+          case "COMMENT_COUNT_UPDATED": {
+            const { postId, count } = event.data;
+            const post = state.posts.find((p) => p.id === postId);
+            if (post) post.commentCount = count;
+            const el = $(`comment-count-${postId}`);
+            if (el) el.textContent = count;
+            break;
+          }
+        }
+      }
+
+      function handleLikeUpdate(update) {
+        // update = { postId, likeCount }
+        const post = state.posts.find((p) => p.id === update.postId);
+        if (post) post.likeCount = update.likeCount;
+        const countEl = $(`like-count-${update.postId}`);
+        if (countEl) countEl.textContent = update.likeCount;
+      }
+
+      function handleCommentEvent(postId, event) {
+        // Les commentaires ne sont visibles que si la section est ouverte
+        if (!state.openComments[postId]) return;
+        if (
+          event.type === "COMMENT_ADDED" ||
+          event.type === "COMMENT_DELETED"
+        ) {
+          loadComments(postId); // Recharger les commentaires du post
+        }
+      }
+
+      // Injecter un nouveau post card en haut du container sans tout re-render
+      function prependPostCard(post) {
+        const container = $("posts-container");
+        const emptyState = container.querySelector(".empty-state");
+        if (emptyState) container.innerHTML = "";
+
+        const div = document.createElement("div");
+        div.innerHTML = buildPostCardHtml(post, 0);
+        const card = div.firstElementChild;
+        card.classList.add("new-flash");
+        container.insertBefore(card, container.firstChild);
+      }
+
+      // Mettre à jour une card existante (titre, contenu)
+      function updatePostCard(post) {
+        const titleEl = document.querySelector(`#post-${post.id} .post-title`);
+        const previewEl = $(`preview-${post.id}`);
+        const fullEl = $(`full-${post.id}`);
+        if (titleEl) titleEl.textContent = post.title;
+        if (previewEl) previewEl.textContent = post.content;
+        if (fullEl) fullEl.textContent = post.content;
+      }
+
+      function updatePostCount() {
+        const n = state.posts.length;
+        $("post-count").textContent =
+          n === 0 ? "Aucun post" : `${n} post${n > 1 ? "s" : ""}`;
+      }
+
+      // ══════════════════════════════════
+      // AUTH
+      // ══════════════════════════════════
       function switchAuthTab(tab) {
         const l = tab === "login";
         $("login-form").classList.toggle("hidden", !l);
@@ -1194,18 +1398,26 @@
           email: data.email,
           role: data.role,
         };
-        $("nav-avatar").textContent = initial(data.username);
-        $("nav-username").textContent = data.username;
-        $("prompt-initial").textContent = initial(data.username);
+        saveSession(); // 💾 Sauvegarder dans localStorage
+        mountApp();
+      }
+
+      function mountApp() {
+        $("nav-avatar").textContent = initial(state.user.username);
+        $("nav-username").textContent = state.user.username;
+        $("prompt-initial").textContent = initial(state.user.username);
         $("prompt-initial").style.background =
           "linear-gradient(135deg,var(--accent),var(--accent2))";
         $("prompt-initial").style.color = "#fff";
         $("auth-page").classList.add("hidden");
         $("app-page").classList.remove("hidden");
+        connectWebSocket();
         loadPosts();
       }
 
       function doLogout() {
+        disconnectWebSocket();
+        clearSession(); // 🗑 Effacer localStorage
         state = {
           token: null,
           user: null,
@@ -1213,6 +1425,7 @@
           editingPostId: null,
           deletingPostId: null,
           openComments: {},
+          stompClient: null,
         };
         $("app-page").classList.add("hidden");
         $("auth-page").classList.remove("hidden");
@@ -1223,7 +1436,9 @@
         switchAuthTab("login");
       }
 
-      // ── POSTS ──
+      // ══════════════════════════════════
+      // POSTS
+      // ══════════════════════════════════
       async function loadPosts() {
         $("posts-container").innerHTML =
           `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
@@ -1242,6 +1457,45 @@
         }
       }
 
+      function buildPostCardHtml(post, delay) {
+        const own = state.user && post.authorId === state.user.id;
+        const liked = post.likedByCurrentUser;
+        const commentsOpen = state.openComments[post.id];
+        return `
+  <div class="post-card" id="post-${post.id}" style="animation-delay:${delay}s">
+    <div class="post-header">
+      <div class="post-meta">
+        <div class="post-avatar ${own ? "own" : ""}">${initial(post.authorUsername)}</div>
+        <div>
+          <div class="post-author">${esc(post.authorUsername)}${own ? '<span class="own-badge">Moi</span>' : ""}</div>
+          <div class="post-date">${formatDate(post.createdAt)}</div>
+        </div>
+      </div>
+      ${
+        own
+          ? `<div class="post-actions">
+        <button class="btn btn-ghost btn-sm" onclick="startEdit(${post.id})">✏️ Modifier</button>
+        <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${post.id})">🗑</button>
+      </div>`
+          : ""
+      }
+    </div>
+    <div class="post-title" onclick="toggleExpand(${post.id})">${esc(post.title)}</div>
+    <div class="post-preview" id="preview-${post.id}">${esc(post.content)}</div>
+    <div class="post-full hidden" id="full-${post.id}">${esc(post.content)}</div>
+    <div class="post-footer">
+      <button class="action-btn ${liked ? "liked" : ""}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
+        ${liked ? "❤️" : "🤍"} <span id="like-count-${post.id}">${post.likeCount}</span>
+      </button>
+      <button class="action-btn ${commentsOpen ? "comments-open" : ""}" id="comment-toggle-${post.id}" onclick="toggleComments(${post.id})">
+        💬 <span id="comment-count-${post.id}">${post.commentCount}</span>
+      </button>
+      <button class="read-more" id="readmore-${post.id}" onclick="toggleExpand(${post.id})">Lire la suite →</button>
+    </div>
+    <div class="comments-section hidden" id="comments-${post.id}"></div>
+  </div>`;
+      }
+
       function renderPosts() {
         const n = state.posts.length;
         $("post-count").textContent =
@@ -1252,53 +1506,15 @@
           return;
         }
         $("posts-container").innerHTML = state.posts
-          .map((post, i) => {
-            const own = state.user && post.authorId === state.user.id;
-            const liked = post.likedByCurrentUser;
-            const commentsOpen = state.openComments[post.id];
-            return `
-    <div class="post-card" id="post-${post.id}" style="animation-delay:${Math.min(i * 0.05, 0.4)}s">
-      <div class="post-header">
-        <div class="post-meta">
-          <div class="post-avatar ${own ? "own" : ""}">${initial(post.authorUsername)}</div>
-          <div>
-            <div class="post-author">${esc(post.authorUsername)}${own ? '<span class="own-badge">Moi</span>' : ""}</div>
-            <div class="post-date">${formatDate(post.createdAt)}</div>
-          </div>
-        </div>
-        ${
-          own
-            ? `<div class="post-actions">
-          <button class="btn btn-ghost btn-sm" onclick="startEdit(${post.id})">✏️ Modifier</button>
-          <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${post.id})">🗑</button>
-        </div>`
-            : ""
-        }
-      </div>
-      <div class="post-title" onclick="toggleExpand(${post.id})">${esc(post.title)}</div>
-      <div class="post-preview" id="preview-${post.id}">${esc(post.content)}</div>
-      <div class="post-full hidden" id="full-${post.id}">${esc(post.content)}</div>
-      <div class="post-footer">
-        <button class="action-btn ${liked ? "liked" : ""}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
-          ${liked ? "❤️" : "🤍"} <span id="like-count-${post.id}">${post.likeCount}</span>
-        </button>
-        <button class="action-btn ${commentsOpen ? "comments-open" : ""}" id="comment-toggle-${post.id}" onclick="toggleComments(${post.id})">
-          💬 <span id="comment-count-${post.id}">${post.commentCount}</span>
-        </button>
-        <button class="read-more" id="readmore-${post.id}" onclick="toggleExpand(${post.id})">Lire la suite →</button>
-      </div>
-      <div class="comments-section hidden" id="comments-${post.id}"></div>
-    </div>`;
-          })
+          .map((post, i) => buildPostCardHtml(post, Math.min(i * 0.05, 0.4)))
           .join("");
 
-        // Ré-ouvrir les sections commentaires qui étaient ouvertes avant le reload
+        // Ré-ouvrir les commentaires qui étaient ouverts
         Object.keys(state.openComments).forEach((postId) => {
           if (state.openComments[postId]) loadComments(Number(postId));
         });
       }
 
-      // ── EXPAND ──
       function toggleExpand(id) {
         const p = $(`preview-${id}`),
           f = $(`full-${id}`),
@@ -1309,7 +1525,9 @@
         b.textContent = exp ? "← Réduire" : "Lire la suite →";
       }
 
-      // ── LIKES ──
+      // ══════════════════════════════════
+      // LIKES
+      // ══════════════════════════════════
       async function toggleLike(postId) {
         if (!state.token) {
           toast("Connecte-toi pour liker.", "error");
@@ -1324,14 +1542,11 @@
           });
           if (!res.ok) throw new Error();
           const data = await res.json();
-          // Mettre à jour l'état local
           const post = state.posts.find((p) => p.id === postId);
           if (post) {
             post.likeCount = data.likeCount;
             post.likedByCurrentUser = data.likedByCurrentUser;
           }
-          // Mettre à jour le DOM sans recharger toute la liste
-          $(`like-count-${postId}`).textContent = data.likeCount;
           btn.className = `action-btn ${data.likedByCurrentUser ? "liked" : ""}`;
           btn.innerHTML = `${data.likedByCurrentUser ? "❤️" : "🤍"} <span id="like-count-${postId}">${data.likeCount}</span>`;
         } catch {
@@ -1341,7 +1556,9 @@
         }
       }
 
-      // ── COMMENTS ──
+      // ══════════════════════════════════
+      // COMMENTAIRES
+      // ══════════════════════════════════
       function toggleComments(postId) {
         const section = $(`comments-${postId}`);
         const btn = $(`comment-toggle-${postId}`);
@@ -1354,24 +1571,26 @@
           section.classList.remove("hidden");
           btn.classList.add("comments-open");
           state.openComments[postId] = true;
+          subscribeToPostComments(postId); // S'abonner au WebSocket de ce post
           loadComments(postId);
         }
       }
 
       async function loadComments(postId) {
         const section = $(`comments-${postId}`);
-        section.innerHTML = `<div class="comments-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+        if (!section) return;
+        section.innerHTML = `<div style="display:flex;justify-content:center;padding:16px 0"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
         try {
           const res = await fetch(`${API}/posts/${postId}/comments`);
-          const comments = await res.json();
-          renderComments(postId, comments);
+          renderComments(postId, await res.json());
         } catch {
-          section.innerHTML = `<div class="no-comments">Erreur lors du chargement des commentaires.</div>`;
+          section.innerHTML = `<div class="no-comments">Erreur lors du chargement.</div>`;
         }
       }
 
       function renderComments(postId, comments) {
         const section = $(`comments-${postId}`);
+        if (!section) return;
         const myInitial = state.user ? initial(state.user.username) : "?";
         const listHtml =
           comments.length === 0
@@ -1411,9 +1630,9 @@
     }`;
       }
 
-      function handleCommentKey(event, postId) {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
+      function handleCommentKey(e, postId) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
           submitComment(postId);
         }
       }
@@ -1436,7 +1655,8 @@
           });
           if (!res.ok) throw new Error();
           input.value = "";
-          // Recharger les commentaires et incrémenter le compteur
+          // Le rechargement des commentaires se fait via WebSocket pour les autres
+          // Pour soi-même on recharge directement
           const post = state.posts.find((p) => p.id === postId);
           if (post) post.commentCount++;
           $(`comment-count-${postId}`).textContent = post
@@ -1474,7 +1694,9 @@
         }
       }
 
-      // ── POST FORM ──
+      // ══════════════════════════════════
+      // POST FORM
+      // ══════════════════════════════════
       function showCreateForm() {
         state.editingPostId = null;
         $("form-mode-label").textContent = "Nouveau post";
@@ -1537,7 +1759,7 @@
           if (res.ok) {
             hidePostForm();
             toast(isEdit ? "Post modifié !" : "Post publié !");
-            await loadPosts();
+            await loadPosts(); // Recharger pour mettre à jour sa propre vue
           } else {
             const el = $("form-error");
             el.textContent = data.errors
@@ -1554,7 +1776,9 @@
         }
       }
 
-      // ── DELETE MODAL ──
+      // ══════════════════════════════════
+      // DELETE MODAL
+      // ══════════════════════════════════
       function openDeleteModal(id) {
         state.deletingPostId = id;
         $("delete-modal").classList.remove("hidden");
@@ -1579,7 +1803,7 @@
             await loadPosts();
           } else {
             closeDeleteModal();
-            toast("Erreur lors de la suppression.", "error");
+            toast("Erreur.", "error");
           }
         } catch {
           closeDeleteModal();
@@ -1587,7 +1811,9 @@
         }
       }
 
-      // ── KEYBOARD ──
+      // ══════════════════════════════════
+      // KEYBOARD
+      // ══════════════════════════════════
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
           hidePostForm();
@@ -1605,6 +1831,20 @@
       $("delete-modal").addEventListener("click", (e) => {
         if (e.target === $("delete-modal")) closeDeleteModal();
       });
+
+      // ══════════════════════════════════
+      // DÉMARRAGE — restaurer la session
+      // ══════════════════════════════════
+      (function init() {
+        const session = loadSession();
+        if (session) {
+          // Session trouvée → restaurer l'état et aller direct sur l'app
+          state.token = session.token;
+          state.user = session.user;
+          mountApp();
+        }
+        // Sinon on reste sur la page auth
+      })();
     </script>
   </body>
 </html>

@@ -48,11 +48,16 @@ public class SecurityConfig {
         http
             // Désactive CSRF (inutile avec JWT stateless)
             .csrf(csrf -> csrf.disable())
+            // SockJS utilise des iframes pour le fallback HTTP
+            // Sans ça, le navigateur bloque le chargement
+            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(auth -> auth
                 // Auth — public
                 .requestMatchers("/api/auth/**").permitAll()
                 // Frontend
                 .requestMatchers("/", "/index.html").permitAll()
+                // ✅ WebSocket — SockJS fait des requêtes sur /ws et /ws/**
+                .requestMatchers("/ws/**").permitAll()
                 // Posts — lecture publique, écriture protégée
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                 // Commentaires — lecture publique, écriture protégée

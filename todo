@@ -1,0 +1,17 @@
+Prochaines étapes possibles
+Il reste quelques features intéressantes à implémenter si tu veux continuer :
+Fonctionnalités sociales :
+
+👥 Follow — suivre un utilisateur et voir son fil séparé
+🔔 Notifications — alerte quand quelqu'un like ou commente tes posts
+
+Compte utilisateur :
+
+👤 Profil public — page /profil/{username} avec ses posts et stats
+✏️ Modifier son profil — bio, photo de profil (initiale colorée custom)
+
+Qualité :
+
+🔍 Recherche — chercher des posts par mot-clé
+📄 Pagination — charger les posts par page au lieu de tout en une fois
+🛡️ Rôle Admin — modérer les posts et bannir des users

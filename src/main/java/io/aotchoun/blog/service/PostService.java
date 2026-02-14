@@ -10,6 +10,7 @@ import io.aotchoun.blog.repository.CommentRepository;
 import io.aotchoun.blog.repository.LikeRepository;
 import io.aotchoun.blog.repository.PostRepository;
 import io.aotchoun.blog.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,15 +34,18 @@ public class PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public PostService(PostRepository postRepository, 
                         UserRepository userRepository,
                         LikeRepository likeRepository,
-                        CommentRepository commentRepository) {
+                        CommentRepository commentRepository, 
+                        SimpMessagingTemplate messagingTemplate) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -104,7 +108,12 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         Post post = new Post(request.getTitle(), request.getContent(), author);
         post = postRepository.save(post);
-        return enrich(post, username);
+        PostResponse response = enrich(post, username);
+
+        // Broadcaster à tous les clients connectés
+        messagingTemplate.convertAndSend("/topic/posts", 
+            new WsEvent("POST_CREATED", response));
+        return response;
     }
 
     /**
@@ -120,18 +129,17 @@ public class PostService {
     public PostResponse updatePost(Long id, PostRequest request, String username) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
-
-        // Vérifier que c'est bien l'auteur qui modifie
-        // SÉCURITÉ : sans cette vérification, n'importe qui pourrait modifier n'importe quel post !
         if (!post.getAuthor().getUsername().equals(username)) {
             throw new UnauthorizedException("You can only edit your own posts");
         }
-
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
         post = postRepository.save(post);
+        PostResponse response = enrich(post, username);
 
-        return enrich(post, username);
+        messagingTemplate.convertAndSend("/topic/posts",
+            new WsEvent("POST_UPDATED", response));
+        return response;
     }
 
     /**
@@ -145,12 +153,21 @@ public class PostService {
     public void deletePost(Long id, String username) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
-
-        // Vérifier que c'est bien l'auteur qui supprime
         if (!post.getAuthor().getUsername().equals(username)) {
             throw new UnauthorizedException("You can only delete your own posts");
         }
-
         postRepository.deleteById(id);
+
+        messagingTemplate.convertAndSend("/topic/posts",
+            new WsEvent("POST_DELETED", id));
+    }
+
+    // Classe interne simple pour wrapper les événements WebSocket
+    public static class WsEvent {
+        private String type;
+        private Object data;
+        public WsEvent(String type, Object data) { this.type = type; this.data = data; }
+        public String getType() { return type; }
+        public Object getData() { return data; }
     }
 }
