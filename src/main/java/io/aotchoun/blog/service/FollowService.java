@@ -9,6 +9,7 @@ import io.aotchoun.blog.exception.ResourceNotFoundException;
 import io.aotchoun.blog.repository.FollowRepository;
 import io.aotchoun.blog.repository.PostRepository;
 import io.aotchoun.blog.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,13 +20,16 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public FollowService(FollowRepository followRepository,
                         UserRepository userRepository,
-                        PostRepository postRepository) {
+                        PostRepository postRepository,
+                        SimpMessagingTemplate messagingTemplate) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     /**
@@ -57,7 +61,13 @@ public class FollowService {
         }
 
         long followerCount = followRepository.countByFollowedId(targetUserId);
-        return new FollowResponse(following, followerCount);
+        FollowResponse response = new FollowResponse(following, followerCount);
+
+        // ✅ Broadcaster la mise à jour du compteur de followers
+        messagingTemplate.convertAndSend("/topic/follows",
+            new FollowerUpdate(targetUserId, followerCount));
+
+        return response;
     }
 
     /**
@@ -90,5 +100,19 @@ public class FollowService {
             followingCount,
             followedByCurrentUser
         );
+    }
+
+    // Payload WebSocket pour broadcaster les mises à jour de followers
+    public static class FollowerUpdate {
+        private Long userId;
+        private long followerCount;
+        
+        public FollowerUpdate(Long userId, long followerCount) {
+            this.userId = userId;
+            this.followerCount = followerCount;
+        }
+        
+        public Long getUserId() { return userId; }
+        public long getFollowerCount() { return followerCount; }
     }
 }

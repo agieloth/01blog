@@ -371,6 +371,10 @@ function connectWebSocket(){
       const update = JSON.parse(msg.body);
       handleLikeUpdate(update);
     });
+    state.stompClient.subscribe('/topic/follows', (msg) => {
+      const update = JSON.parse(msg.body);
+      handleFollowerUpdate(update);
+    });
   }, () => {
     $('ws-dot').classList.remove('connected');
     setTimeout(connectWebSocket, 3000);
@@ -429,6 +433,13 @@ function handleLikeUpdate(update){
   if (post) post.likeCount = update.likeCount;
   const countEl = $(`like-count-${update.postId}`);
   if (countEl) countEl.textContent = update.likeCount;
+}
+function handleFollowerUpdate(update){
+  // Si on est sur la page profil de l'utilisateur concerné, mettre à jour le compteur
+  if(state.currentView === 'profile' && state.currentProfileUserId === update.userId){
+    const followerCountEl = $('follower-count');
+    if(followerCountEl) followerCountEl.textContent = update.followerCount;
+  }
 }
 function handleCommentEvent(postId, event){
   if (!state.openComments[postId]) return;
