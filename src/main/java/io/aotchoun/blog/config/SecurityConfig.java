@@ -17,15 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * Configuration Spring Security avec JWT
- *
- * Définit :
- * - Quelles routes sont publiques (pas besoin de token)
- * - Quelles routes sont protégées (token obligatoire)
- * - Comment vérifier les credentials (BCrypt + DB)
- * - Que l'app est STATELESS (pas de sessions HTTP, on utilise JWT)
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -38,30 +29,25 @@ public class SecurityConfig {
         this.userDetailsService = userDetailsService;
     }
 
-    /**
-     * Chaîne de filtres de sécurité
-     *
-     * C'est ici qu'on définit les règles d'accès.
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Désactive CSRF (inutile avec JWT stateless)
             .csrf(csrf -> csrf.disable())
-            // SockJS utilise des iframes pour le fallback HTTP
-            // Sans ça, le navigateur bloque le chargement
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(auth -> auth
-                // Auth — public
+                // Auth
                 .requestMatchers("/api/auth/**").permitAll()
                 // Frontend
                 .requestMatchers("/", "/index.html").permitAll()
-                // ✅ WebSocket — SockJS fait des requêtes sur /ws et /ws/**
+                // WebSocket
                 .requestMatchers("/ws/**").permitAll()
-                // Posts — lecture publique, écriture protégée
+                // Posts — lecture publique
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
-                // Commentaires — lecture publique, écriture protégée
+                // Commentaires — lecture publique
                 .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                // Users — lecture publique (stats, posts)
+                .requestMatchers(HttpMethod.GET, "/api/users/*/stats").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/*/posts").permitAll()
                 // Tout le reste — token obligatoire
                 .anyRequest().authenticated()
             )
@@ -72,12 +58,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Fournisseur d'authentification
-     *
-     * Connecte Spring Security à notre UserDetailsService et PasswordEncoder.
-     * C'est lui qui est appelé quand on vérifie un login/password.
-     */
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -86,19 +66,11 @@ public class SecurityConfig {
         return provider;
     }
 
-    /**
-     * AuthenticationManager
-     *
-     * Permet d'injecter le manager dans d'autres services si besoin.
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    /**
-     * Encodeur de mots de passe BCrypt
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

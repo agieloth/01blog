@@ -2,6 +2,8 @@ package io.aotchoun.blog.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entité Post - Représente un article de blog dans la base de données
@@ -36,6 +38,16 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
+
+    // ✅ Relation bidirectionnelle avec cascade
+    // Quand on supprime un post, tous ses commentaires sont supprimés
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<io.aotchoun.blog.entity.Comment> comments = new ArrayList<>();
+
+    // ✅ Relation bidirectionnelle avec cascade
+    // Quand on supprime un post, tous ses likes sont supprimés
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<io.aotchoun.blog.entity.Like> likes = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
