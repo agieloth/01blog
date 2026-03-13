@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,51 +20,70 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final JwtAuthFilter jwtAuthFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, UserDetailsServiceImpl userDetailsService) {
-        this.jwtAuthFilter = jwtAuthFilter;
+    public SecurityConfig(UserDetailsServiceImpl userDetailsService, JwtAuthFilter jwtAuthFilter) {
         this.userDetailsService = userDetailsService;
+        this.jwtAuthFilter = jwtAuthFilter;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Auth
+                // Auth endpoints (public)
                 .requestMatchers("/api/auth/**").permitAll()
-                // Frontend
-                .requestMatchers("/", "/index.html").permitAll()
-                // WebSocket
+                
+                // WebSocket endpoints (public)
                 .requestMatchers("/ws/**").permitAll()
-                // Posts — lecture publique
-                .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
-                // Commentaires — lecture publique
-                .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
-                // ✅ IMAGES PUBLIQUES
+                
+                // Static resources (public)
+                .requestMatchers("/", "/index.html").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
-                // Users — lecture publique (stats, posts)
+                
+                // Posts endpoints
+                .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/posts").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/posts/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated()
+                
+                // Comments endpoints
+                .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/posts/*/comments").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/posts/*/comments/*").authenticated()
+                
+                // Likes endpoints
+                .requestMatchers(HttpMethod.POST, "/api/posts/*/like").authenticated()
+                
+                // User endpoints (public stats, authenticated follow)
                 .requestMatchers(HttpMethod.GET, "/api/users/*/stats").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/*/posts").permitAll()
-                // Tout le reste — token obligatoire
+                .requestMatchers(HttpMethod.POST, "/api/users/*/follow").authenticated()
+                
+                // Notifications endpoints (authenticated only)
+                .requestMatchers("/api/notifications/**").authenticated()
+                
+                // Everything else requires authentication
                 .anyRequest().authenticated()
             )
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
+        
+        // Disable frame options for WebSocket (SockJS)
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
+        
         return http.build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
     }
 
     @Bean

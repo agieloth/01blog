@@ -3,6 +3,7 @@ package io.aotchoun.blog.service;
 import io.aotchoun.blog.dto.response.FollowResponse;
 import io.aotchoun.blog.dto.response.UserStatsResponse;
 import io.aotchoun.blog.entity.Follow;
+import io.aotchoun.blog.entity.Notification;
 import io.aotchoun.blog.entity.User;
 import io.aotchoun.blog.exception.BadRequestException;
 import io.aotchoun.blog.exception.ResourceNotFoundException;
@@ -21,20 +22,20 @@ public class FollowService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     public FollowService(FollowRepository followRepository,
                         UserRepository userRepository,
                         PostRepository postRepository,
-                        SimpMessagingTemplate messagingTemplate) {
+                        SimpMessagingTemplate messagingTemplate,
+                        NotificationService notificationService) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.messagingTemplate = messagingTemplate;
+        this.notificationService = notificationService;
     }
 
-    /**
-     * Toggle follow : suivre si pas encore suivi, unfollow sinon
-     */
     public FollowResponse toggleFollow(Long targetUserId, String currentUsername) {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + currentUsername));
@@ -42,7 +43,6 @@ public class FollowService {
         User targetUser = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + targetUserId));
 
-        // On ne peut pas se suivre soi-même
         if (currentUser.getId().equals(targetUserId)) {
             throw new BadRequestException("You cannot follow yourself");
         }
@@ -51,28 +51,32 @@ public class FollowService {
         
         boolean following;
         if (existing.isPresent()) {
-            // Déjà suivi → unfollow
             followRepository.delete(existing.get());
             following = false;
         } else {
-            // Pas encore suivi → follow
             followRepository.save(new Follow(currentUser, targetUser));
             following = true;
+            
+            // ✅ Créer une notification
+            notificationService.createNotification(
+                targetUserId,
+                Notification.NotificationType.NEW_FOLLOWER,
+                currentUser.getUsername() + " a commencé à vous suivre",
+                currentUser.getId(),
+                currentUser.getUsername()
+            );
         }
 
         long followerCount = followRepository.countByFollowedId(targetUserId);
         FollowResponse response = new FollowResponse(following, followerCount);
 
-        // ✅ Broadcaster la mise à jour du compteur de followers
+        // Broadcaster la mise à jour du compteur de followers
         messagingTemplate.convertAndSend("/topic/follows",
             new FollowerUpdate(targetUserId, followerCount));
 
         return response;
     }
 
-    /**
-     * Récupérer les stats d'un utilisateur
-     */
     @Transactional(readOnly = true)
     public UserStatsResponse getUserStats(Long userId, String currentUsername) {
         User user = userRepository.findById(userId)
@@ -102,7 +106,6 @@ public class FollowService {
         );
     }
 
-    // Payload WebSocket pour broadcaster les mises à jour de followers
     public static class FollowerUpdate {
         private Long userId;
         private long followerCount;

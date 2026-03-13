@@ -2,6 +2,7 @@ package io.aotchoun.blog.service;
 
 import io.aotchoun.blog.dto.response.LikeResponse;
 import io.aotchoun.blog.entity.Like;
+import io.aotchoun.blog.entity.Notification;
 import io.aotchoun.blog.entity.Post;
 import io.aotchoun.blog.entity.User;
 import io.aotchoun.blog.exception.ResourceNotFoundException;
@@ -20,15 +21,18 @@ public class LikeService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     public LikeService(LikeRepository likeRepository,
                        PostRepository postRepository,
                        UserRepository userRepository,
-                       SimpMessagingTemplate messagingTemplate) {
+                       SimpMessagingTemplate messagingTemplate,
+                       NotificationService notificationService) {
         this.likeRepository = likeRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -49,21 +53,36 @@ public class LikeService {
         } else {
             likeRepository.save(new Like(user, post));
             liked = true;
+
+            // ✅ Créer une notification si ce n'est pas l'auteur qui like son propre post
+            if (!post.getAuthor().getId().equals(user.getId())) {
+                notificationService.createNotification(
+                    post.getAuthor().getId(),
+                    Notification.NotificationType.POST_LIKED,
+                    user.getUsername() + " a aimé votre post : " + post.getTitle(),
+                    postId,
+                    user.getUsername()
+                );
+            }
         }
-        long count = likeRepository.countByPostId(postId);
-        LikeResponse response = new LikeResponse(postId, count, liked);
+        long likeCount = likeRepository.countByPostId(postId);
+        LikeResponse response = new LikeResponse(postId, likeCount, liked);
 
         // Broadcaster le nouveau count de likes à tous les clients
         // Chaque client recalculera likedByCurrentUser côté frontend
         messagingTemplate.convertAndSend("/topic/likes",
-            new LikeUpdate(postId, count));
+            new LikeUpdate(postId, likeCount));
         return response;
     }
 
     // Payload public (sans likedByCurrentUser — chaque client gère son propre état)
     public static class LikeUpdate {
         private Long postId; private long likeCount;
-        public LikeUpdate(Long postId, long likeCount) { this.postId = postId; this.likeCount = likeCount; }
+        public LikeUpdate(Long postId, long likeCount) { 
+            this.postId = postId; 
+            this.likeCount = likeCount; 
+        }
+        
         public Long getPostId() { return postId; }
         public long getLikeCount() { return likeCount; }
     }

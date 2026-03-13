@@ -3,6 +3,7 @@ package io.aotchoun.blog.service;
 import io.aotchoun.blog.dto.request.CommentRequest;
 import io.aotchoun.blog.dto.response.CommentResponse;
 import io.aotchoun.blog.entity.Comment;
+import io.aotchoun.blog.entity.Notification;
 import io.aotchoun.blog.entity.Post;
 import io.aotchoun.blog.entity.User;
 import io.aotchoun.blog.exception.ResourceNotFoundException;
@@ -27,15 +28,18 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NotificationService notificationService;
 
     public CommentService(CommentRepository commentRepository,
                           PostRepository postRepository,
                           UserRepository userRepository,
-                          SimpMessagingTemplate messagingTemplate) {
+                          SimpMessagingTemplate messagingTemplate,
+                          NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -58,15 +62,27 @@ public class CommentService {
 
         Comment comment = new Comment(request.getContent(), author, post);
         comment = commentRepository.save(comment);
+
+        // ✅ Créer une notification si ce n'est pas l'auteur qui commente son propre post
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            notificationService.createNotification(
+                post.getAuthor().getId(),
+                Notification.NotificationType.POST_COMMENTED,
+                author.getUsername() + " a commenté votre post : " + post.getTitle(),
+                postId,
+                author.getUsername()
+            );
+        }
+
         CommentResponse response = CommentResponse.from(comment);
 
         // Broadcaster sur le topic du post concerné
         messagingTemplate.convertAndSend("/topic/comments/" + postId,
             new WsEvent("COMMENT_ADDED", response));
         // Broadcaster le nouveau count à tous
-        long count = commentRepository.countByPostId(postId);
+        long commentCount = commentRepository.countByPostId(postId);
         messagingTemplate.convertAndSend("/topic/posts",
-            new WsEvent("COMMENT_COUNT_UPDATED", new CountUpdate(postId, count)));
+            new WsEvent("COMMENT_COUNT_UPDATED", new CommentCountUpdate(postId, commentCount)));
         return response;
     }
 
@@ -83,21 +99,30 @@ public class CommentService {
 
         messagingTemplate.convertAndSend("/topic/comments/" + postId,
             new WsEvent("COMMENT_DELETED", commentId));
-        long count = commentRepository.countByPostId(postId);
+        long commentCount = commentRepository.countByPostId(postId);
         messagingTemplate.convertAndSend("/topic/posts",
-            new WsEvent("COMMENT_COUNT_UPDATED", new CountUpdate(postId, count)));
+            new WsEvent("COMMENT_COUNT_UPDATED", new CommentCountUpdate(postId, commentCount)));
     }
 
     public static class WsEvent {
         private String type; private Object data;
-        public WsEvent(String type, Object data) { this.type = type; this.data = data; }
+        public WsEvent(String type, Object data) { 
+            this.type = type; 
+            this.data = data; 
+        }
+
         public String getType() { return type; }
         public Object getData() { return data; }
     }
 
-    public static class CountUpdate {
-        private Long postId; private long count;
-        public CountUpdate(Long postId, long count) { this.postId = postId; this.count = count; }
+    public static class CommentCountUpdate {
+        private Long postId; 
+        private long count;
+        public CommentCountUpdate(Long postId, long count) { 
+            this.postId = postId; 
+            this.count = count; 
+        }
+        
         public Long getPostId() { return postId; }
         public long getCount() { return count; }
     }
