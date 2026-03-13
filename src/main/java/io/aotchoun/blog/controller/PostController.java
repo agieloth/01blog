@@ -3,27 +3,17 @@ package io.aotchoun.blog.controller;
 import io.aotchoun.blog.dto.request.PostRequest;
 import io.aotchoun.blog.dto.response.PostResponse;
 import io.aotchoun.blog.service.PostService;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-/**
- * Controller pour les Posts
- *
- * @AuthenticationPrincipal :
- * Injecte automatiquement l'utilisateur authentifié depuis le SecurityContext.
- * C'est Spring Security qui remplit ça grâce à notre JwtAuthFilter.
- *
- * C'est l'équivalent de "req.user" dans Express.js (Node.js).
- */
 @RestController
 @RequestMapping("/api/posts")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PostController {
 
     private final PostService postService;
@@ -32,75 +22,70 @@ public class PostController {
         this.postService = postService;
     }
 
-    /**
-     * GET /api/posts
-     * Public — retourne tous les posts
-     */
     @GetMapping
-    public ResponseEntity<List<PostResponse>> getAllPosts(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        // username peut être null si l'utilisateur n'est pas connecté
-        String username = userDetails != null ? userDetails.getUsername() : null;
+    public ResponseEntity<List<PostResponse>> getAllPosts(Authentication auth) {
+        String username = auth != null ? auth.getName() : null;
         return ResponseEntity.ok(postService.getAllPosts(username));
     }
 
-    /**
-     * GET /api/posts/{id}
-     * Public — retourne un post par son ID
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<PostResponse> getPostById(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        String username = userDetails != null ? userDetails.getUsername() : null;
+    public ResponseEntity<PostResponse> getPostById(@PathVariable Long id, Authentication auth) {
+        String username = auth != null ? auth.getName() : null;
         return ResponseEntity.ok(postService.getPostById(id, username));
     }
 
     /**
-     * POST /api/posts
-     * Protégé — crée un nouveau post
-     *
-     * @AuthenticationPrincipal UserDetails userDetails
-     * → Spring injecte l'utilisateur connecté automatiquement
-     * → userDetails.getUsername() donne le username depuis le token JWT
+     * Créer un post avec jusqu'à 3 images
+     * Content-Type: multipart/form-data
+     * 
+     * Params:
+     * - title (string, required)
+     * - content (string, required)
+     * - images (file[], optional, max 3)
      */
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<PostResponse> createPost(
-            @Valid @RequestBody PostRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        PostResponse post = postService.createPost(request, userDetails.getUsername());
-        return new ResponseEntity<>(post, HttpStatus.CREATED);
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "images", required = false) MultipartFile[] images,
+            Authentication auth) {
+        
+        PostRequest request = new PostRequest();
+        request.setTitle(title);
+        request.setContent(content);
+        
+        PostResponse post = postService.createPost(request, images, auth.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(post);
     }
 
     /**
-     * PUT /api/posts/{id}
-     * Protégé — modifie un post (seulement l'auteur)
+     * Modifier un post avec possibilité de changer les images
+     * Content-Type: multipart/form-data
+     * 
+     * Params:
+     * - title (string, required)
+     * - content (string, required)
+     * - images (file[], optional, max 3) - si fourni, remplace toutes les anciennes images
      */
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     public ResponseEntity<PostResponse> updatePost(
             @PathVariable Long id,
-            @Valid @RequestBody PostRequest request,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        return ResponseEntity.ok(postService.updatePost(id, request, userDetails.getUsername()));
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "images", required = false) MultipartFile[] images,
+            Authentication auth) {
+        
+        PostRequest request = new PostRequest();
+        request.setTitle(title);
+        request.setContent(content);
+        
+        PostResponse post = postService.updatePost(id, request, images, auth.getName());
+        return ResponseEntity.ok(post);
     }
 
-    /**
-     * DELETE /api/posts/{id}
-     * Protégé — supprime un post (seulement l'auteur)
-     *
-     * 204 No Content : succès mais pas de body dans la réponse
-     * C'est la convention REST pour les suppressions.
-     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        postService.deletePost(id, userDetails.getUsername());
+    public ResponseEntity<Void> deletePost(@PathVariable Long id, Authentication auth) {
+        postService.deletePost(id, auth.getName());
         return ResponseEntity.noContent().build();
     }
 }

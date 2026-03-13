@@ -39,15 +39,17 @@ public class Post {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    // ✅ Plusieurs images (max 3) stockées en JSON
+    @Column(columnDefinition = "TEXT")
+    private String imageUrls;
+
     // ✅ Relation bidirectionnelle avec cascade
     // Quand on supprime un post, tous ses commentaires sont supprimés
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<io.aotchoun.blog.entity.Comment> comments = new ArrayList<>();
+    private List<Comment> comments = new ArrayList<>();
 
-    // ✅ Relation bidirectionnelle avec cascade
-    // Quand on supprime un post, tous ses likes sont supprimés
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<io.aotchoun.blog.entity.Like> likes = new ArrayList<>();
+    private List<Like> likes = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -90,6 +92,9 @@ public class Post {
     public String getTitle() { return title; }
     public String getContent() { return content; }
     public User getAuthor() { return author; }
+    public String getImageUrls() { return imageUrls; }
+    public List<Comment> getComments() { return comments; }
+    public List<Like> getLikes() { return likes; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -101,6 +106,9 @@ public class Post {
     public void setTitle(String title) { this.title = title; }
     public void setContent(String content) { this.content = content; }
     public void setAuthor(User author) { this.author = author; }
+    public void setImageUrls(String imageUrls) { this.imageUrls = imageUrls; }
+    public void setComments(List<Comment> comments) { this.comments = comments; }
+    public void setLikes(List<Like> likes) { this.likes = likes; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

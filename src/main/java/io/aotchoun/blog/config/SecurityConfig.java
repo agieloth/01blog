@@ -45,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                 // Commentaires — lecture publique
                 .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                // ✅ IMAGES PUBLIQUES
+                .requestMatchers("/uploads/**").permitAll()
                 // Users — lecture publique (stats, posts)
                 .requestMatchers(HttpMethod.GET, "/api/users/*/stats").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/*/posts").permitAll()

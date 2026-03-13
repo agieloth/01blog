@@ -106,6 +106,15 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
 .post-form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);animation:slideUp .3s cubic-bezier(.16,1,.3,1) both}
 .post-form-label{font-family:var(--font-head);font-size:.85rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px}
 #post-content-input{min-height:110px;font-size:.9rem;line-height:1.7}
+.image-upload-section{margin:16px 0}
+.image-upload-label{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;cursor:pointer;transition:all .2s;font-size:.85rem;color:var(--text2)}
+.image-upload-label:hover{border-color:var(--accent);background:var(--accent-light);color:var(--text)}
+.image-upload-input{display:none}
+.image-previews{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.image-preview-item{position:relative;width:180px;height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.image-preview{width:100%;height:100%;object-fit:cover;display:block}
+.remove-image-btn{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:1}
+.remove-image-btn:hover{background:var(--error);transform:scale(1.1)}
 .post-form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
 
 /* POST CARD */
@@ -126,6 +135,12 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
 .post-card:hover .post-actions{opacity:1}
 .post-title{font-family:var(--font-head);font-size:1.2rem;font-weight:700;letter-spacing:-.02em;line-height:1.35;margin-bottom:10px;cursor:pointer;transition:color .2s}
 .post-title:hover{color:var(--accent)}
+.post-images{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:12px 0;max-height:400px}
+.post-images.single{grid-template-columns:1fr}
+.post-images.double{grid-template-columns:repeat(2,1fr)}
+.post-images.triple{grid-template-columns:repeat(3,1fr)}
+.post-image{width:100%;height:100%;max-height:400px;object-fit:cover;border-radius:10px;cursor:pointer;transition:opacity .2s}
+.post-image:hover{opacity:.95}
 .post-preview{color:var(--text2);font-size:.88rem;line-height:1.75;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .post-full{color:var(--text2);font-size:.88rem;line-height:1.75;white-space:pre-wrap}
 .post-footer{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
@@ -246,6 +261,13 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
       <div class="post-form-label" id="form-mode-label">Nouveau post</div>
       <div class="form-group"><label>Titre</label><input type="text" id="post-title-input" placeholder="Un titre accrocheur…"/></div>
       <div class="form-group"><label>Contenu</label><textarea id="post-content-input" placeholder="Exprime-toi…"></textarea></div>
+      <div class="image-upload-section">
+        <label class="image-upload-label" for="post-image-input">
+          📷 Ajouter des images (max 3)
+        </label>
+        <input type="file" id="post-image-input" class="image-upload-input" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple onchange="handleImageSelect(event)"/>
+        <div id="image-previews" class="image-previews"></div>
+      </div>
       <div class="post-form-actions">
         <button class="btn btn-ghost btn-sm" onclick="hidePostForm()">Annuler</button>
         <button class="btn btn-primary btn-sm" id="form-submit-btn" onclick="submitPost()">Publier</button>
@@ -282,7 +304,7 @@ const STORAGE_KEY = 'studenthub_session';
 
 let state = {
   token: null, user: null, posts: [], followingUsers: new Set(),
-  editingPostId: null, deletingPostId: null,
+  editingPostId: null, deletingPostId: null, selectedImages: [],
   openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null
 };
 
@@ -570,6 +592,11 @@ function buildPostCardHtml(post, delay){
       </div>` : ''}
     </div>
     <div class="post-title" onclick="toggleExpand(${post.id})">${esc(post.title)}</div>
+    ${post.imageUrls && post.imageUrls.length > 0 ? `
+      <div class="post-images ${post.imageUrls.length === 1 ? 'single' : post.imageUrls.length === 2 ? 'double' : 'triple'}">
+        ${post.imageUrls.map(url => `<img src="http://localhost:8080${url}" class="post-image" alt="${esc(post.title)}" onclick="window.open(this.src, '_blank')"/>`).join('')}
+      </div>
+    ` : ''}
     <div class="post-preview" id="preview-${post.id}">${esc(post.content)}</div>
     <div class="post-full hidden" id="full-${post.id}">${esc(post.content)}</div>
     <div class="post-footer">
@@ -731,6 +758,7 @@ function showCreateForm(){
   $('form-mode-label').textContent = 'Nouveau post';
   $('form-submit-btn').textContent = 'Publier';
   $('post-title-input').value = ''; $('post-content-input').value = '';
+  clearImagePreviews();
   $('create-prompt').classList.add('hidden');
   $('post-form-card').classList.remove('hidden');
   $('post-title-input').focus(); hideAlert('form-error');
@@ -739,6 +767,7 @@ function hidePostForm(){
   $('post-form-card').classList.add('hidden');
   $('create-prompt').classList.remove('hidden');
   state.editingPostId = null;
+  clearImagePreviews();
 }
 function startEdit(id){
   const post = state.posts.find(p => p.id === id); if (!post) return;
@@ -758,22 +787,110 @@ async function submitPost(){
   const isEdit = state.editingPostId !== null;
   const label = isEdit ? 'Enregistrer' : 'Publier';
   setLoading('form-submit-btn', true, label);
+  
   try{
+    // Utiliser FormData pour envoyer les fichiers
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    
+    // Ajouter toutes les images sélectionnées
+    if (state.selectedImages.length > 0) {
+      state.selectedImages.forEach(file => {
+        formData.append('images', file);
+      });
+    }
+    
     const res = await fetch(isEdit ? `${API}/posts/${state.editingPostId}` : `${API}/posts`, {
       method: isEdit ? 'PUT' : 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${state.token}`},
-      body: JSON.stringify({title, content})
+      headers: {'Authorization':`Bearer ${state.token}`},
+      body: formData
     });
-    const data = await res.json();
+    
     if (res.ok){
       hidePostForm();
       toast(isEdit ? 'Post modifié !' : 'Post publié !');
       await loadPosts();
     } else {
+      const data = await res.json();
       const el=$('form-error'); el.textContent=data.errors?Object.values(data.errors).join(' · '):(data.message||'Erreur.'); el.className='alert alert-error show';
     }
-  }catch{ const el=$('form-error'); el.textContent='Erreur réseau.'; el.className='alert alert-error show'; }
+  }catch(err){ 
+    console.error(err);
+    const el=$('form-error'); el.textContent='Erreur réseau.'; el.className='alert alert-error show'; 
+  }
   finally{ setLoading('form-submit-btn', false, label); }
+}
+
+// Gestion de l'image
+function handleImageSelect(event){
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
+  
+  // Validation : max 3 images
+  if (state.selectedImages.length + files.length > 3) {
+    const el=$('form-error'); 
+    el.textContent='Maximum 3 images par post.'; 
+    el.className='alert alert-error show';
+    event.target.value = '';
+    return;
+  }
+  
+  // Validation de chaque fichier
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  
+  for (const file of files) {
+    if (file.size > maxSize) {
+      const el=$('form-error'); 
+      el.textContent='Chaque image ne doit pas dépasser 5MB.'; 
+      el.className='alert alert-error show';
+      event.target.value = '';
+      return;
+    }
+    
+    if (!allowedTypes.includes(file.type)) {
+      const el=$('form-error'); 
+      el.textContent='Seules les images (JPG, PNG, GIF, WEBP) sont acceptées.'; 
+      el.className='alert alert-error show';
+      event.target.value = '';
+      return;
+    }
+  }
+  
+  // Ajouter les fichiers au state
+  state.selectedImages.push(...files);
+  
+  // Afficher tous les previews
+  renderImagePreviews();
+  hideAlert('form-error');
+}
+
+function renderImagePreviews(){
+  const container = $('image-previews');
+  container.innerHTML = state.selectedImages.map((file, index) => {
+    const url = URL.createObjectURL(file);
+    return `
+      <div class="image-preview-item">
+        <img src="${url}" class="image-preview" alt="Preview ${index+1}"/>
+        <button type="button" class="remove-image-btn" onclick="removeImage(${index})" title="Retirer">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function removeImage(index){
+  state.selectedImages.splice(index, 1);
+  renderImagePreviews();
+  if (state.selectedImages.length === 0) {
+    $('post-image-input').value = '';
+  }
+}
+
+function clearImagePreviews(){
+  state.selectedImages = [];
+  $('post-image-input').value = '';
+  $('image-previews').innerHTML = '';
 }
 
 // ══════════════════════════════════
