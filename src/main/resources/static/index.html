@@ -75,6 +75,31 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
 .ws-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;transition:background .3s}
 .ws-dot.connected{background:var(--success);animation:pulse 2s infinite}
 
+/* NOTIFICATIONS */
+.notif-bell{position:relative;background:none;border:none;color:var(--text2);font-size:1.3rem;cursor:pointer;padding:8px;border-radius:8px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.notif-bell:hover{background:var(--surface2);color:var(--text)}
+.notif-badge{position:absolute;top:4px;right:4px;background:var(--error);color:#fff;font-size:.65rem;font-weight:700;padding:2px 5px;border-radius:10px;min-width:18px;text-align:center;line-height:1}
+.notif-dropdown{position:absolute;top:60px;right:40px;width:380px;max-height:500px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:200;animation:slideUp .2s ease;overflow:hidden;display:flex;flex-direction:column}
+.notif-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.notif-title{font-family:var(--font-head);font-size:1.1rem;font-weight:700}
+.notif-mark-all{background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background .2s}
+.notif-mark-all:hover{background:var(--accent-light)}
+.notif-list{flex:1;overflow-y:auto;max-height:400px}
+.notif-item{padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s;display:flex;gap:12px;align-items:flex-start}
+.notif-item:hover{background:var(--surface2)}
+.notif-item.unread{background:var(--accent-light)}
+.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0}
+.notif-icon{width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.notif-icon.like{background:var(--like-bg);color:var(--like)}
+.notif-icon.comment{background:var(--accent-light);color:var(--accent)}
+.notif-icon.follow{background:var(--success-bg);color:var(--success)}
+.notif-content{flex:1;min-width:0}
+.notif-message{font-size:.85rem;line-height:1.5;color:var(--text);margin-bottom:4px}
+.notif-actor{font-weight:600;color:var(--accent)}
+.notif-time{font-size:.72rem;color:var(--muted)}
+.notif-empty{padding:60px 20px;text-align:center;color:var(--muted)}
+.notif-empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
+
 .app-body{flex:1;max-width:740px;width:100%;margin:0 auto;padding:44px 24px}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
 .section-title{font-family:var(--font-head);font-size:1.8rem;font-weight:700;letter-spacing:-.03em}
@@ -237,6 +262,10 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
     <div class="navbar-brand" onclick="navigateTo('feed')">Student<span>Hub</span></div>
     <div class="navbar-right">
       <span class="ws-dot" id="ws-dot" title="Temps réel"></span>
+      <button class="notif-bell" id="notif-bell" onclick="toggleNotifications()" title="Notifications">
+        🔔
+        <span class="notif-badge hidden" id="notif-badge">0</span>
+      </button>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="navbar-avatar" id="nav-avatar" onclick="goToMyProfile()">?</div>
         <span class="navbar-username" id="nav-username" onclick="goToMyProfile()">—</span>
@@ -244,6 +273,20 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">Déconnexion</button>
     </div>
   </nav>
+
+  <!-- NOTIFICATIONS DROPDOWN -->
+  <div class="notif-dropdown hidden" id="notif-dropdown">
+    <div class="notif-header">
+      <div class="notif-title">Notifications</div>
+      <button class="notif-mark-all" onclick="markAllAsRead()">Tout marquer comme lu</button>
+    </div>
+    <div class="notif-list" id="notif-list">
+      <div class="notif-empty">
+        <div class="notif-empty-icon">🔔</div>
+        <div>Aucune notification</div>
+      </div>
+    </div>
+  </div>
 
   <!-- FEED VIEW -->
   <main class="app-body" id="feed-view">
@@ -305,7 +348,8 @@ const STORAGE_KEY = 'studenthub_session';
 let state = {
   token: null, user: null, posts: [], followingUsers: new Set(),
   editingPostId: null, deletingPostId: null, selectedImages: [],
-  openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null
+  openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null,
+  notifications: [], unreadCount: 0, notifDropdownOpen: false
 };
 
 const $ = id => document.getElementById(id);
@@ -397,6 +441,14 @@ function connectWebSocket(){
       const update = JSON.parse(msg.body);
       handleFollowerUpdate(update);
     });
+    
+    // Subscribe to personal notifications
+    if (state.user) {
+      state.stompClient.subscribe('/topic/notifications/' + state.user.id, (msg) => {
+        const notification = JSON.parse(msg.body);
+        handleNewNotification(notification);
+      });
+    }
   }, () => {
     $('ws-dot').classList.remove('connected');
     setTimeout(connectWebSocket, 3000);
@@ -542,11 +594,13 @@ function mountApp(){
   connectWebSocket();
   navigateTo('feed');
   loadPosts();
+  loadNotifications();
+  loadUnreadCount();
 }
 function doLogout(){
   disconnectWebSocket();
   clearSession();
-  state = {token:null, user:null, posts:[], followingUsers: new Set(), editingPostId:null, deletingPostId:null, openComments:{}, stompClient:null, currentView:'feed', currentProfileUserId:null};
+  state = {token:null, user:null, posts:[], followingUsers: new Set(), editingPostId:null, deletingPostId:null, selectedImages:[], openComments:{}, stompClient:null, currentView:'feed', currentProfileUserId:null, notifications:[], unreadCount:0, notifDropdownOpen:false};
   $('app-page').classList.add('hidden');
   $('auth-page').classList.remove('hidden');
   hidePostForm();
@@ -1014,6 +1068,176 @@ async function toggleFollow(userId){
     btn.disabled = false;
   }
 }
+
+// ══════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════
+async function loadNotifications(){
+  if(!state.token) return;
+  try{
+    const res = await fetch(`${API}/notifications`, {
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    if(res.ok){
+      state.notifications = await res.json();
+      renderNotifications();
+    }
+  }catch(err){
+    console.error('Error loading notifications:', err);
+  }
+}
+
+async function loadUnreadCount(){
+  if(!state.token) return;
+  try{
+    const res = await fetch(`${API}/notifications/unread-count`, {
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    if(res.ok){
+      const data = await res.json();
+      state.unreadCount = data.count;
+      updateNotifBadge();
+    }
+  }catch(err){
+    console.error('Error loading unread count:', err);
+  }
+}
+
+function updateNotifBadge(){
+  const badge = $('notif-badge');
+  if(state.unreadCount > 0){
+    badge.textContent = state.unreadCount > 99 ? '99+' : state.unreadCount;
+    badge.classList.remove('hidden');
+  }else{
+    badge.classList.add('hidden');
+  }
+}
+
+function toggleNotifications(){
+  const dropdown = $('notif-dropdown');
+  state.notifDropdownOpen = !state.notifDropdownOpen;
+  dropdown.classList.toggle('hidden', !state.notifDropdownOpen);
+  
+  if(state.notifDropdownOpen){
+    renderNotifications();
+  }
+}
+
+function renderNotifications(){
+  const list = $('notif-list');
+  
+  if(state.notifications.length === 0){
+    list.innerHTML = `
+      <div class="notif-empty">
+        <div class="notif-empty-icon">🔔</div>
+        <div>Aucune notification</div>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = state.notifications.map(n => {
+    const icon = n.type === 'POST_LIKED' ? '❤️' : n.type === 'POST_COMMENTED' ? '💬' : '👤';
+    const iconClass = n.type === 'POST_LIKED' ? 'like' : n.type === 'POST_COMMENTED' ? 'comment' : 'follow';
+    
+    return `
+      <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id}, '${n.type}', ${n.relatedEntityId})">
+        <div class="notif-icon ${iconClass}">${icon}</div>
+        <div class="notif-content">
+          <div class="notif-message">
+            <span class="notif-actor">${esc(n.actorUsername)}</span> ${esc(n.message.replace(n.actorUsername, '').trim())}
+          </div>
+          <div class="notif-time">${formatDate(n.createdAt)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleNotificationClick(notifId, type, relatedEntityId){
+  // Marquer comme lue
+  if(!state.notifications.find(n => n.id === notifId)?.read){
+    await markAsRead(notifId);
+  }
+  
+  // Fermer le dropdown
+  state.notifDropdownOpen = false;
+  $('notif-dropdown').classList.add('hidden');
+  
+  // Naviguer vers la ressource
+  if(type === 'NEW_FOLLOWER'){
+    goToProfile(relatedEntityId);
+  }else if(type === 'POST_LIKED' || type === 'POST_COMMENTED'){
+    navigateTo('feed');
+    // Scroll vers le post (optionnel)
+    setTimeout(() => {
+      const postCard = $(`post-${relatedEntityId}`);
+      if(postCard) postCard.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 300);
+  }
+}
+
+async function markAsRead(notifId){
+  try{
+    const res = await fetch(`${API}/notifications/${notifId}/read`, {
+      method: 'PATCH',
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    if(res.ok || res.status === 204){
+      const notif = state.notifications.find(n => n.id === notifId);
+      if(notif) notif.read = true;
+      state.unreadCount = Math.max(0, state.unreadCount - 1);
+      updateNotifBadge();
+      renderNotifications();
+    }
+  }catch(err){
+    console.error('Error marking notification as read:', err);
+  }
+}
+
+async function markAllAsRead(){
+  try{
+    const res = await fetch(`${API}/notifications/read-all`, {
+      method: 'PATCH',
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    if(res.ok || res.status === 204){
+      state.notifications.forEach(n => n.read = true);
+      state.unreadCount = 0;
+      updateNotifBadge();
+      renderNotifications();
+      toast('Toutes les notifications ont été marquées comme lues');
+    }
+  }catch(err){
+    console.error('Error marking all as read:', err);
+  }
+}
+
+function handleNewNotification(notification){
+  // Ajouter en début de liste
+  state.notifications.unshift(notification);
+  state.unreadCount++;
+  updateNotifBadge();
+  
+  // Si le dropdown est ouvert, rafraîchir
+  if(state.notifDropdownOpen){
+    renderNotifications();
+  }
+  
+  // Toast notification
+  const icon = notification.type === 'POST_LIKED' ? '❤️' : notification.type === 'POST_COMMENTED' ? '💬' : '👤';
+  toast(`${icon} ${notification.message}`);
+}
+
+// Fermer le dropdown quand on clique ailleurs
+document.addEventListener('click', (e) => {
+  const dropdown = $('notif-dropdown');
+  const bell = $('notif-bell');
+  if(state.notifDropdownOpen && !dropdown.contains(e.target) && !bell.contains(e.target)){
+    state.notifDropdownOpen = false;
+    dropdown.classList.add('hidden');
+  }
+});
 
 // ══════════════════════════════════
 // KEYBOARD
