@@ -100,6 +100,17 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
 .notif-empty{padding:60px 20px;text-align:center;color:var(--muted)}
 .notif-empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
 
+/* REPORT MODAL */
+.report-btn{background:none;border:1px solid var(--error);color:var(--error);padding:8px 16px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.report-btn:hover{background:var(--error);color:#fff}
+.report-form{display:flex;flex-direction:column;gap:16px}
+.report-reasons{display:flex;flex-direction:column;gap:8px}
+.report-reason{padding:12px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;font-size:.88rem}
+.report-reason:hover{border-color:var(--accent);background:var(--accent-light)}
+.report-reason.selected{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600}
+.report-textarea{width:100%;min-height:100px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;font-size:.88rem;resize:vertical}
+.report-textarea:focus{outline:none;border-color:var(--accent)}
+
 .app-body{flex:1;max-width:740px;width:100%;margin:0 auto;padding:44px 24px}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
 .section-title{font-family:var(--font-head);font-size:1.8rem;font-weight:700;letter-spacing:-.03em}
@@ -336,6 +347,29 @@ input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">Annuler</button>
       <button class="btn btn-sm" id="confirm-delete-btn" style="background:var(--error);color:#fff;font-family:var(--font-head)" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-overlay hidden" id="report-modal">
+  <div class="modal">
+    <div class="modal-title">Signaler <span id="report-username"></span></div>
+    <div class="modal-text">Sélectionnez une raison pour ce signalement</div>
+    <div class="report-form">
+      <div class="report-reasons">
+        <div class="report-reason" data-reason="SPAM">Spam</div>
+        <div class="report-reason" data-reason="HARASSMENT">Harcèlement</div>
+        <div class="report-reason" data-reason="INAPPROPRIATE_CONTENT">Contenu inapproprié</div>
+        <div class="report-reason" data-reason="HATE_SPEECH">Discours haineux</div>
+        <div class="report-reason" data-reason="OTHER">Autre</div>
+      </div>
+      <textarea id="report-description" class="report-textarea" placeholder="Description (optionnel)"></textarea>
+      <div id="report-error" class="alert alert-error hidden"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeReportModal()">Annuler</button>
+      <button class="btn btn-sm" id="submit-report-btn" style="background:var(--error);color:#fff;font-family:var(--font-head)" onclick="submitReport()">Signaler</button>
     </div>
   </div>
 </div>
@@ -968,6 +1002,84 @@ async function confirmDelete(){
 }
 
 // ══════════════════════════════════
+// REPORT MODAL
+// ══════════════════════════════════
+let reportState = { userId: null, username: null, selectedReason: null };
+
+function openReportModal(userId, username){
+  reportState.userId = userId;
+  reportState.username = username;
+  reportState.selectedReason = null;
+  
+  $('report-username').textContent = username;
+  $('report-description').value = '';
+  hideAlert('report-error');
+  
+  // Désélectionner toutes les raisons
+  document.querySelectorAll('.report-reason').forEach(el => el.classList.remove('selected'));
+  
+  $('report-modal').classList.remove('hidden');
+}
+
+function closeReportModal(){
+  reportState = { userId: null, username: null, selectedReason: null };
+  $('report-modal').classList.add('hidden');
+}
+
+// Sélectionner une raison
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.report-reason').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.report-reason').forEach(r => r.classList.remove('selected'));
+      el.classList.add('selected');
+      reportState.selectedReason = el.dataset.reason;
+      hideAlert('report-error');
+    });
+  });
+});
+
+async function submitReport(){
+  if (!reportState.selectedReason) {
+    const el = $('report-error');
+    el.textContent = 'Veuillez sélectionner une raison.';
+    el.classList.remove('hidden');
+    return;
+  }
+  
+  setLoading('submit-report-btn', true, 'Signaler');
+  
+  try {
+    const res = await fetch(`${API}/reports/user/${reportState.userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      },
+      body: JSON.stringify({
+        reason: reportState.selectedReason,
+        description: $('report-description').value.trim() || null
+      })
+    });
+    
+    if (res.ok || res.status === 201) {
+      closeReportModal();
+      toast('Signalement envoyé. Merci pour votre contribution.');
+    } else {
+      const data = await res.json();
+      const el = $('report-error');
+      el.textContent = data.message || 'Erreur lors du signalement.';
+      el.classList.remove('hidden');
+    }
+  } catch (err) {
+    const el = $('report-error');
+    el.textContent = 'Erreur réseau.';
+    el.classList.remove('hidden');
+  } finally {
+    setLoading('submit-report-btn', false, 'Signaler');
+  }
+}
+
+// ══════════════════════════════════
 // PROFILE VIEW
 // ══════════════════════════════════
 async function loadProfileView(userId){
@@ -1016,6 +1128,9 @@ function renderProfileView(stats, posts){
           <div class="profile-actions">
             <button class="btn-follow ${stats.followedByCurrentUser?'following':''}" id="profile-follow-btn" onclick="toggleFollow(${stats.userId})">
               ${stats.followedByCurrentUser ? 'Abonné' : 'S\'abonner'}
+            </button>
+            <button class="report-btn" onclick="openReportModal(${stats.userId}, '${stats.username}')">
+              ⚠️ Signaler
             </button>
           </div>` : ''}
         </div>
@@ -1250,6 +1365,7 @@ document.addEventListener('keydown', e => {
   }
 });
 $('delete-modal').addEventListener('click', e => { if (e.target === $('delete-modal')) closeDeleteModal(); });
+$('report-modal').addEventListener('click', e => { if (e.target === $('report-modal')) closeReportModal(); });
 
 // ══════════════════════════════════
 // INIT
