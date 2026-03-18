@@ -1,671 +1,1982 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>StudentHub</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0b0d11;--surface:#13161d;--surface2:#1a1e28;--border:#1e2330;--border2:#2a3045;
-  --accent:#5c6fff;--accent2:#a78bfa;--accent-light:rgba(92,111,255,.12);--accent-hover:#4a5be8;
-  --success:#34d399;--success-bg:rgba(52,211,153,.1);--error:#f87171;--error-bg:rgba(248,113,113,.1);
-  --like:#f472b6;--like-bg:rgba(244,114,182,.1);
-  --text:#e8eaf0;--text2:#9ca3b0;--muted:#6b7280;
-  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;
-  --radius:14px;--shadow:0 4px 24px rgba(0,0,0,.4);--shadow-lg:0 16px 48px rgba(0,0,0,.6);
-}
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.6;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
-.blob{position:fixed;border-radius:50%;filter:blur(120px);opacity:.1;pointer-events:none;z-index:0}
-.blob-1{width:600px;height:600px;background:var(--accent);top:-200px;left:-200px}
-.blob-2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudentHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-.hidden{display:none!important}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes bounce{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.5);opacity:1}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .55s linear infinite;vertical-align:middle;margin-right:5px}
+    :root {
+      --bg: #0b0d11;
+      --surface: #13161d;
+      --surface2: #1a1e28;
+      --border: #1e2330;
+      --border2: #2a3045;
+      --accent: #5c6fff;
+      --accent2: #a78bfa;
+      --accent-light: rgba(92, 111, 255, .12);
+      --accent-hover: #4a5be8;
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, .1);
+      --error: #f87171;
+      --error-bg: rgba(248, 113, 113, .1);
+      --like: #f472b6;
+      --like-bg: rgba(244, 114, 182, .1);
+      --text: #e8eaf0;
+      --text2: #9ca3b0;
+      --muted: #6b7280;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius: 14px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, .4);
+      --shadow-lg: 0 16px 48px rgba(0, 0, 0, .6);
+    }
 
-/* AUTH */
-#auth-page{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative;z-index:1}
-.auth-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:var(--shadow);animation:slideUp .5s cubic-bezier(.16,1,.3,1) both}
-.auth-logo{font-family:var(--font-head);font-size:1.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:28px}
-.auth-logo span{color:var(--accent)}
-.auth-title{font-family:var(--font-head);font-size:1.6rem;font-weight:700;letter-spacing:-.03em;margin-bottom:6px}
-.auth-sub{color:var(--muted);font-size:.88rem;margin-bottom:28px}
-.tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:28px}
-.tab-btn{flex:1;padding:9px;border:none;background:none;color:var(--muted);font-family:var(--font-body);font-size:.88rem;font-weight:500;border-radius:7px;cursor:pointer;transition:all .2s}
-.tab-btn.active{background:var(--surface);color:var(--text);border:1px solid var(--border)}
-.form-group{margin-bottom:16px}
-label{display:block;font-size:.76rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
-input[type=text],input[type=email],input[type=password],textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:.92rem;outline:none;transition:border-color .2s,box-shadow .2s;resize:vertical}
-input::placeholder,textarea::placeholder{color:var(--muted);opacity:.5}
-input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,111,255,.15)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 20px;border:none;border-radius:9px;font-family:var(--font-head);font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.01em}
-.btn-primary{background:var(--accent);color:#fff;width:100%}
-.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 6px 20px rgba(92,111,255,.35)}
-.btn-primary:active{transform:translateY(0)}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.btn-ghost{background:none;color:var(--text2);border:1px solid var(--border)}
-.btn-ghost:hover{border-color:var(--border2);background:var(--surface2)}
-.btn-danger{background:none;color:var(--error);border:1px solid transparent}
-.btn-danger:hover{background:var(--error-bg);border-color:rgba(248,113,113,.3)}
-.btn-sm{padding:7px 14px;font-size:.8rem;border-radius:7px}
-.alert{padding:11px 14px;border-radius:9px;font-size:.84rem;margin-top:14px;display:none}
-.alert.show{display:block;animation:fadeIn .25s ease}
-.alert-error{background:var(--error-bg);border:1px solid rgba(248,113,113,.25);color:var(--error)}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh
+    }
 
-/* APP */
-#app-page{min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1}
-.navbar{background:rgba(11,13,17,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 40px;height:62px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.navbar-brand{font-family:var(--font-head);font-size:1.3rem;font-weight:800;letter-spacing:-.03em;cursor:pointer}
-.navbar-brand span{color:var(--accent)}
-.navbar-right{display:flex;align-items:center;gap:14px}
-.navbar-avatar{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:var(--font-head);font-size:.95rem;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s}
-.navbar-avatar:hover{transform:scale(1.05)}
-.navbar-username{font-size:.88rem;font-weight:600;cursor:pointer;transition:color .2s}
-.navbar-username:hover{color:var(--accent)}
-.ws-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);display:inline-block;transition:background .3s}
-.ws-dot.connected{background:var(--success);animation:pulse 2s infinite}
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0
+    }
 
-/* NOTIFICATIONS */
-.notif-bell{position:relative;background:none;border:none;color:var(--text2);font-size:1.3rem;cursor:pointer;padding:8px;border-radius:8px;transition:all .2s;display:flex;align-items:center;justify-content:center}
-.notif-bell:hover{background:var(--surface2);color:var(--text)}
-.notif-badge{position:absolute;top:4px;right:4px;background:var(--error);color:#fff;font-size:.65rem;font-weight:700;padding:2px 5px;border-radius:10px;min-width:18px;text-align:center;line-height:1}
-.notif-dropdown{position:absolute;top:60px;right:40px;width:380px;max-height:500px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:200;animation:slideUp .2s ease;overflow:hidden;display:flex;flex-direction:column}
-.notif-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.notif-title{font-family:var(--font-head);font-size:1.1rem;font-weight:700}
-.notif-mark-all{background:none;border:none;color:var(--accent);font-size:.78rem;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background .2s}
-.notif-mark-all:hover{background:var(--accent-light)}
-.notif-list{flex:1;overflow-y:auto;max-height:400px}
-.notif-item{padding:14px 20px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s;display:flex;gap:12px;align-items:flex-start}
-.notif-item:hover{background:var(--surface2)}
-.notif-item.unread{background:var(--accent-light)}
-.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0}
-.notif-icon{width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-.notif-icon.like{background:var(--like-bg);color:var(--like)}
-.notif-icon.comment{background:var(--accent-light);color:var(--accent)}
-.notif-icon.follow{background:var(--success-bg);color:var(--success)}
-.notif-content{flex:1;min-width:0}
-.notif-message{font-size:.85rem;line-height:1.5;color:var(--text);margin-bottom:4px}
-.notif-actor{font-weight:600;color:var(--accent)}
-.notif-time{font-size:.72rem;color:var(--muted)}
-.notif-empty{padding:60px 20px;text-align:center;color:var(--muted)}
-.notif-empty-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: .1;
+      pointer-events: none;
+      z-index: 0
+    }
 
-/* REPORT MODAL */
-.report-btn{background:none;border:1px solid var(--error);color:var(--error);padding:8px 16px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
-.report-btn:hover{background:var(--error);color:#fff}
-.report-form{display:flex;flex-direction:column;gap:16px}
-.report-reasons{display:flex;flex-direction:column;gap:8px}
-.report-reason{padding:12px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;font-size:.88rem}
-.report-reason:hover{border-color:var(--accent);background:var(--accent-light)}
-.report-reason.selected{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600}
-.report-textarea{width:100%;min-height:100px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-family:inherit;font-size:.88rem;resize:vertical}
-.report-textarea:focus{outline:none;border-color:var(--accent)}
+    .blob-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      left: -200px
+    }
 
-.app-body{flex:1;max-width:740px;width:100%;margin:0 auto;padding:44px 24px}
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
-.section-title{font-family:var(--font-head);font-size:1.8rem;font-weight:700;letter-spacing:-.03em}
-.section-count{font-size:.78rem;color:var(--muted);margin-top:3px}
+    .blob-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent2);
+      bottom: -100px;
+      right: -100px
+    }
 
-/* PROFILE PAGE */
-.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;margin-bottom:28px;box-shadow:var(--shadow);animation:slideUp .4s ease}
-.profile-header{display:flex;align-items:flex-start;gap:20px;margin-bottom:24px}
-.profile-avatar{width:80px;height:80px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:var(--font-head);font-size:2rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.profile-info{flex:1}
-.profile-username{font-family:var(--font-head);font-size:1.6rem;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
-.profile-stats{display:flex;gap:24px;margin-top:12px}
-.profile-stat{display:flex;flex-direction:column;align-items:center}
-.profile-stat-value{font-family:var(--font-head);font-size:1.3rem;font-weight:700;color:var(--text)}
-.profile-stat-label{font-size:.76rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-.profile-actions{display:flex;gap:10px;margin-top:16px}
-.btn-follow{background:var(--accent);color:#fff;padding:10px 24px;border:none;border-radius:8px;font-family:var(--font-head);font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-follow:hover{background:var(--accent-hover);transform:translateY(-1px)}
-.btn-follow.following{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.btn-follow.following:hover{border-color:var(--error);color:var(--error)}
+    .hidden {
+      display: none !important
+    }
 
-/* CREATE PROMPT */
-.create-prompt{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius);padding:17px 22px;display:flex;align-items:center;gap:14px;margin-bottom:24px;cursor:pointer;transition:all .2s}
-.create-prompt:hover{border-color:var(--accent);background:var(--accent-light)}
-.create-prompt-avatar{width:36px;height:36px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:.9rem;font-weight:700;color:var(--muted);flex-shrink:0}
-.create-prompt-text{color:var(--muted);font-size:.88rem}
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
 
-/* POST FORM */
-.post-form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px;box-shadow:var(--shadow);animation:slideUp .3s cubic-bezier(.16,1,.3,1) both}
-.post-form-label{font-family:var(--font-head);font-size:.85rem;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px}
-#post-content-input{min-height:110px;font-size:.9rem;line-height:1.7}
-.image-upload-section{margin:16px 0}
-.image-upload-label{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--surface2);border:1px dashed var(--border2);border-radius:8px;cursor:pointer;transition:all .2s;font-size:.85rem;color:var(--text2)}
-.image-upload-label:hover{border-color:var(--accent);background:var(--accent-light);color:var(--text)}
-.image-upload-input{display:none}
-.image-previews{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.image-preview-item{position:relative;width:180px;height:180px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
-.image-preview{width:100%;height:100%;object-fit:cover;display:block}
-.remove-image-btn{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:1}
-.remove-image-btn:hover{background:var(--error);transform:scale(1.1)}
-.post-form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+      to {
+        opacity: 1
+      }
+    }
 
-/* POST CARD */
-.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:26px 28px;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;animation:slideUp .4s cubic-bezier(.16,1,.3,1) both}
-.post-card:hover{border-color:var(--border2);box-shadow:0 4px 24px rgba(0,0,0,.3)}
-.post-card.new-flash{animation:newFlash .8s ease}
-@keyframes newFlash{0%{border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,111,255,.2)}100%{border-color:var(--border);box-shadow:none}}
-.post-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
-.post-meta{display:flex;align-items:center;gap:10px}
-.post-avatar{width:32px;height:32px;border-radius:8px;background:var(--surface2);color:var(--muted);font-family:var(--font-head);font-size:.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.post-avatar.own{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-.post-author{font-size:.84rem;font-weight:600;cursor:pointer;transition:color .2s}
-.post-author:hover{color:var(--accent)}
-.post-date{font-size:.74rem;color:var(--muted)}
-.own-badge{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;margin-left:6px;border:1px solid rgba(92,111,255,.25)}
-.following-badge{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:4px;margin-left:6px;border:1px solid rgba(52,211,153,.25)}
-.post-actions{display:flex;gap:6px;flex-shrink:0;opacity:0;transition:opacity .2s}
-.post-card:hover .post-actions{opacity:1}
-.post-title{font-family:var(--font-head);font-size:1.2rem;font-weight:700;letter-spacing:-.02em;line-height:1.35;margin-bottom:10px;cursor:pointer;transition:color .2s}
-.post-title:hover{color:var(--accent)}
-.post-images{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:12px 0;max-height:400px}
-.post-images.single{grid-template-columns:1fr}
-.post-images.double{grid-template-columns:repeat(2,1fr)}
-.post-images.triple{grid-template-columns:repeat(3,1fr)}
-.post-image{width:100%;height:100%;max-height:400px;object-fit:cover;border-radius:10px;cursor:pointer;transition:opacity .2s}
-.post-image:hover{opacity:.95}
-.post-preview{color:var(--text2);font-size:.88rem;line-height:1.75;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.post-full{color:var(--text2);font-size:.88rem;line-height:1.75;white-space:pre-wrap}
-.post-footer{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
-.action-btn{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:.8rem;color:var(--muted);padding:5px 10px;border-radius:7px;transition:all .2s}
-.action-btn:hover{background:var(--surface2);color:var(--text2)}
-.action-btn.liked{color:var(--like)}
-.action-btn.liked:hover{background:var(--like-bg)}
-.action-btn.comments-open{color:var(--accent)}
-.read-more{margin-left:auto;background:none;border:none;color:var(--accent);font-family:var(--font-body);font-size:.79rem;font-weight:600;cursor:pointer;padding:5px 10px;border-radius:7px;transition:background .2s}
-.read-more:hover{background:var(--accent-light)}
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
 
-/* COMMENTS */
-.comments-section{margin-top:16px;border-top:1px solid var(--border);padding-top:16px;animation:slideUp .25s ease}
-.comments-list{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
-.comment-item{display:flex;gap:10px}
-.comment-avatar{width:26px;height:26px;border-radius:6px;background:var(--surface2);color:var(--muted);font-family:var(--font-head);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
-.comment-avatar.own{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-.comment-body{flex:1;background:var(--surface2);border-radius:10px;padding:10px 14px}
-.comment-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.comment-author{font-size:.78rem;font-weight:600}
-.comment-date{font-size:.7rem;color:var(--muted)}
-.comment-text{font-size:.85rem;color:var(--text2);line-height:1.6}
-.delete-comment-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:.75rem;padding:2px 6px;border-radius:5px;transition:all .2s;opacity:0}
-.comment-body:hover .delete-comment-btn{opacity:1}
-.delete-comment-btn:hover{color:var(--error);background:var(--error-bg)}
-.comment-input-row{display:flex;gap:8px;align-items:flex-start}
-.comment-input-row .comment-avatar{margin-top:10px}
-.comment-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-family:var(--font-body);font-size:.85rem;outline:none;resize:none;transition:border-color .2s}
-.comment-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,111,255,.15)}
-.comment-submit{padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:var(--font-head);font-size:.8rem;font-weight:600;cursor:pointer;transition:background .2s;white-space:nowrap}
-.comment-submit:hover{background:var(--accent-hover)}
-.comment-submit:disabled{opacity:.5;cursor:not-allowed}
-.no-comments{text-align:center;color:var(--muted);font-size:.83rem;padding:12px 0}
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
 
-/* EMPTY & LOADING */
-.empty-state{text-align:center;padding:80px 24px;color:var(--muted)}
-.empty-icon{font-size:2.8rem;margin-bottom:14px}
-.empty-title{font-family:var(--font-head);font-size:1.2rem;color:var(--text2);margin-bottom:8px}
-.empty-text{font-size:.85rem;line-height:1.6}
-.posts-loading{display:flex;justify-content:center;padding:64px 0}
-.loading-dots{display:flex;gap:8px}
-.loading-dots span{width:8px;height:8px;border-radius:50%;background:var(--border2);animation:bounce 1.2s infinite}
-.loading-dots span:nth-child(2){animation-delay:.15s}
-.loading-dots span:nth-child(3){animation-delay:.3s}
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;padding:24px;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px;width:100%;max-width:420px;box-shadow:var(--shadow-lg);animation:slideUp .3s cubic-bezier(.16,1,.3,1)}
-.modal-title{font-family:var(--font-head);font-size:1.2rem;font-weight:700;margin-bottom:8px}
-.modal-text{color:var(--text2);font-size:.88rem;line-height:1.6;margin-bottom:24px}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+    @keyframes bounce {
 
-/* TOAST */
-.toast{position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:13px 18px;border-radius:11px;font-size:.86rem;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;animation:slideUp .3s cubic-bezier(.16,1,.3,1);display:flex;align-items:center;gap:10px}
-.toast.success::before{content:'✓';color:var(--success);font-weight:700;font-size:1rem}
-.toast.error::before{content:'✕';color:var(--error);font-weight:700;font-size:1rem}
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: .4
+      }
 
-@media(max-width:640px){.navbar{padding:0 18px}.app-body{padding:28px 16px}.post-card{padding:20px}.profile-header{flex-direction:column;align-items:center;text-align:center}}
-</style>
+      50% {
+        transform: scale(1.5);
+        opacity: 1
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .55s linear infinite;
+      vertical-align: middle;
+      margin-right: 5px
+    }
+
+    /* AUTH */
+    #auth-page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      position: relative;
+      z-index: 1
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: var(--shadow);
+      animation: slideUp .5s cubic-bezier(.16, 1, .3, 1) both
+    }
+
+    .auth-logo {
+      font-family: var(--font-head);
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      margin-bottom: 28px
+    }
+
+    .auth-logo span {
+      color: var(--accent)
+    }
+
+    .auth-title {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -.03em;
+      margin-bottom: 6px
+    }
+
+    .auth-sub {
+      color: var(--muted);
+      font-size: .88rem;
+      margin-bottom: 28px
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: .88rem;
+      font-weight: 500;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border)
+    }
+
+    .form-group {
+      margin-bottom: 16px
+    }
+
+    label {
+      display: block;
+      font-size: .76rem;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 7px
+    }
+
+    input[type=text],
+    input[type=email],
+    input[type=password],
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .92rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      resize: vertical
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+      opacity: .5
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(92, 111, 255, .15)
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 20px;
+      border: none;
+      border-radius: 9px;
+      font-family: var(--font-head);
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: .01em
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(92, 111, 255, .35)
+    }
+
+    .btn-primary:active {
+      transform: translateY(0)
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none
+    }
+
+    .btn-ghost {
+      background: none;
+      color: var(--text2);
+      border: 1px solid var(--border)
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--border2);
+      background: var(--surface2)
+    }
+
+    .btn-danger {
+      background: none;
+      color: var(--error);
+      border: 1px solid transparent
+    }
+
+    .btn-danger:hover {
+      background: var(--error-bg);
+      border-color: rgba(248, 113, 113, .3)
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: .8rem;
+      border-radius: 7px
+    }
+
+    .alert {
+      padding: 11px 14px;
+      border-radius: 9px;
+      font-size: .84rem;
+      margin-top: 14px;
+      display: none
+    }
+
+    .alert.show {
+      display: block;
+      animation: fadeIn .25s ease
+    }
+
+    .alert-error {
+      background: var(--error-bg);
+      border: 1px solid rgba(248, 113, 113, .25);
+      color: var(--error)
+    }
+
+    /* APP */
+    #app-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1
+    }
+
+    .navbar {
+      background: rgba(11, 13, 17, .85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100
+    }
+
+    .navbar-brand {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      cursor: pointer
+    }
+
+    .navbar-brand span {
+      color: var(--accent)
+    }
+
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .navbar-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      font-family: var(--font-head);
+      font-size: .95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform .2s
+    }
+
+    .navbar-avatar:hover {
+      transform: scale(1.05)
+    }
+
+    .navbar-username {
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color .2s
+    }
+
+    .navbar-username:hover {
+      color: var(--accent)
+    }
+
+    .ws-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      display: inline-block;
+      transition: background .3s
+    }
+
+    .ws-dot.connected {
+      background: var(--success);
+      animation: pulse 2s infinite
+    }
+
+    /* NOTIFICATIONS */
+    .notif-bell {
+      position: relative;
+      background: none;
+      border: none;
+      color: var(--text2);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .notif-bell:hover {
+      background: var(--surface2);
+      color: var(--text)
+    }
+
+    .notif-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: var(--error);
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+      line-height: 1
+    }
+
+    .notif-dropdown {
+      position: absolute;
+      top: 60px;
+      right: 40px;
+      width: 380px;
+      max-height: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      z-index: 200;
+      animation: slideUp .2s ease;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column
+    }
+
+    .notif-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .notif-title {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700
+    }
+
+    .notif-mark-all {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background .2s
+    }
+
+    .notif-mark-all:hover {
+      background: var(--accent-light)
+    }
+
+    .notif-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 400px
+    }
+
+    .notif-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start
+    }
+
+    .notif-item:hover {
+      background: var(--surface2)
+    }
+
+    .notif-item.unread {
+      background: var(--accent-light)
+    }
+
+    .notif-item.unread::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 6px;
+      flex-shrink: 0
+    }
+
+    .notif-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0
+    }
+
+    .notif-icon.like {
+      background: var(--like-bg);
+      color: var(--like)
+    }
+
+    .notif-icon.comment {
+      background: var(--accent-light);
+      color: var(--accent)
+    }
+
+    .notif-icon.follow {
+      background: var(--success-bg);
+      color: var(--success)
+    }
+
+    .notif-content {
+      flex: 1;
+      min-width: 0
+    }
+
+    .notif-message {
+      font-size: .85rem;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 4px
+    }
+
+    .notif-actor {
+      font-weight: 600;
+      color: var(--accent)
+    }
+
+    .notif-time {
+      font-size: .72rem;
+      color: var(--muted)
+    }
+
+    .notif-empty {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--muted)
+    }
+
+    .notif-empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+      opacity: .5
+    }
+
+    /* REPORT MODAL */
+    .report-btn {
+      background: none;
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .report-btn:hover {
+      background: var(--error);
+      color: #fff
+    }
+
+    .report-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px
+    }
+
+    .report-reasons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .report-reason {
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: .88rem
+    }
+
+    .report-reason:hover {
+      border-color: var(--accent);
+      background: var(--accent-light)
+    }
+
+    .report-reason.selected {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600
+    }
+
+    .report-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: .88rem;
+      resize: vertical
+    }
+
+    .report-textarea:focus {
+      outline: none;
+      border-color: var(--accent)
+    }
+
+    .app-body {
+      flex: 1;
+      max-width: 740px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 44px 24px
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px
+    }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -.03em
+    }
+
+    .section-count {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    /* PROFILE PAGE */
+    .profile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+      animation: slideUp .4s ease
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 24px
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .profile-info {
+      flex: 1
+    }
+
+    .profile-username {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: 8px
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 12px
+    }
+
+    .profile-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center
+    }
+
+    .profile-stat-value {
+      font-family: var(--font-head);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text)
+    }
+
+    .profile-stat-label {
+      font-size: .76rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 600
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px
+    }
+
+    .btn-follow {
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .btn-follow:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px)
+    }
+
+    .btn-follow.following {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border)
+    }
+
+    .btn-follow.following:hover {
+      border-color: var(--error);
+      color: var(--error)
+    }
+
+    /* CREATE PROMPT */
+    .create-prompt {
+      background: var(--surface);
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius);
+      padding: 17px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      cursor: pointer;
+      transition: all .2s
+    }
+
+    .create-prompt:hover {
+      border-color: var(--accent);
+      background: var(--accent-light)
+    }
+
+    .create-prompt-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-head);
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0
+    }
+
+    .create-prompt-text {
+      color: var(--muted);
+      font-size: .88rem
+    }
+
+    /* POST FORM */
+    .post-form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+      animation: slideUp .3s cubic-bezier(.16, 1, .3, 1) both
+    }
+
+    .post-form-label {
+      font-family: var(--font-head);
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 16px
+    }
+
+    #post-content-input {
+      min-height: 110px;
+      font-size: .9rem;
+      line-height: 1.7;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .image-upload-section {
+      margin: 16px 0
+    }
+
+    .image-upload-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: var(--surface2);
+      border: 1px dashed var(--border2);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: .85rem;
+      color: var(--text2)
+    }
+
+    .image-upload-label:hover {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--text)
+    }
+
+    .image-upload-input {
+      display: none
+    }
+
+    .image-previews {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap
+    }
+
+    .image-preview-item {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border)
+    }
+
+    .image-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block
+    }
+
+    .remove-image-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, .8);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .2s;
+      z-index: 1
+    }
+
+    .remove-image-btn:hover {
+      background: var(--error);
+      transform: scale(1.1)
+    }
+
+    .post-form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 16px
+    }
+
+    /* POST CARD */
+    .post-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px 28px;
+      margin-bottom: 14px;
+      transition: border-color .2s, box-shadow .2s;
+      animation: slideUp .4s cubic-bezier(.16, 1, .3, 1) both
+    }
+
+    .post-card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .3)
+    }
+
+    .post-card.new-flash {
+      animation: newFlash .8s ease
+    }
+
+    @keyframes newFlash {
+      0% {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(92, 111, 255, .2)
+      }
+
+      100% {
+        border-color: var(--border);
+        box-shadow: none
+      }
+    }
+
+    .post-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .post-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-size: .85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0
+    }
+
+    .post-avatar.own {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff
+    }
+
+    .post-author {
+      font-size: .84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color .2s
+    }
+
+    .post-author:hover {
+      color: var(--accent)
+    }
+
+    .post-date {
+      font-size: .74rem;
+      color: var(--muted)
+    }
+
+    .own-badge {
+      font-size: .66rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: var(--accent-light);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      border: 1px solid rgba(92, 111, 255, .25)
+    }
+
+    .following-badge {
+      font-size: .66rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      background: var(--success-bg);
+      color: var(--success);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: 6px;
+      border: 1px solid rgba(52, 211, 153, .25)
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity .2s
+    }
+
+    .post-card:hover .post-actions {
+      opacity: 1
+    }
+
+    .post-title {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      line-height: 1.35;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: color .2s
+    }
+
+    .post-title:hover {
+      color: var(--accent)
+    }
+
+    .post-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+      max-height: 400px
+    }
+
+    .post-images.single {
+      grid-template-columns: 1fr
+    }
+
+    .post-images.double {
+      grid-template-columns: repeat(2, 1fr)
+    }
+
+    .post-images.triple {
+      grid-template-columns: repeat(3, 1fr)
+    }
+
+    .post-image {
+      width: 100%;
+      height: 100%;
+      max-height: 400px;
+      object-fit: cover;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity .2s
+    }
+
+    .post-image:hover {
+      opacity: .95
+    }
+
+    .post-preview {
+      color: var(--text2);
+      font-size: .88rem;
+      line-height: 1.75;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden
+    }
+
+    .post-full {
+      color: var(--text2);
+      font-size: .88rem;
+      line-height: 1.75;
+      white-space: pre-wrap
+    }
+
+    .post-footer {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border)
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-body);
+      font-size: .8rem;
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 7px;
+      transition: all .2s
+    }
+
+    .action-btn:hover {
+      background: var(--surface2);
+      color: var(--text2)
+    }
+
+    .action-btn.liked {
+      color: var(--like)
+    }
+
+    .action-btn.liked:hover {
+      background: var(--like-bg)
+    }
+
+    .action-btn.comments-open {
+      color: var(--accent)
+    }
+
+    .read-more {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: var(--font-body);
+      font-size: .79rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 7px;
+      transition: background .2s
+    }
+
+    .read-more:hover {
+      background: var(--accent-light)
+    }
+
+    /* COMMENTS */
+    .comments-section {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      animation: slideUp .25s ease
+    }
+
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 10px
+    }
+
+    .comment-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--surface2);
+      color: var(--muted);
+      font-family: var(--font-head);
+      font-size: .75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px
+    }
+
+    .comment-avatar.own {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff
+    }
+
+    .comment-body {
+      flex: 1;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 10px 14px
+    }
+
+    .comment-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px
+    }
+
+    .comment-author {
+      font-size: .78rem;
+      font-weight: 600
+    }
+
+    .comment-date {
+      font-size: .7rem;
+      color: var(--muted)
+    }
+
+    .comment-text {
+      font-size: .85rem;
+      color: var(--text2);
+      line-height: 1.6
+    }
+
+    .delete-comment-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: .75rem;
+      padding: 2px 6px;
+      border-radius: 5px;
+      transition: all .2s;
+      opacity: 0
+    }
+
+    .comment-body:hover .delete-comment-btn {
+      opacity: 1
+    }
+
+    .delete-comment-btn:hover {
+      color: var(--error);
+      background: var(--error-bg)
+    }
+
+    .comment-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start
+    }
+
+    .comment-input-row .comment-avatar {
+      margin-top: 10px
+    }
+
+    .comment-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 9px 13px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: .85rem;
+      outline: none;
+      resize: none;
+      transition: border-color .2s
+    }
+
+    .comment-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(92, 111, 255, .15)
+    }
+
+    .comment-submit {
+      padding: 9px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap
+    }
+
+    .comment-submit:hover {
+      background: var(--accent-hover)
+    }
+
+    .comment-submit:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    .no-comments {
+      text-align: center;
+      color: var(--muted);
+      font-size: .83rem;
+      padding: 12px 0
+    }
+
+    /* EMPTY & LOADING */
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+      color: var(--muted)
+    }
+
+    .empty-icon {
+      font-size: 2.8rem;
+      margin-bottom: 14px
+    }
+
+    .empty-title {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      color: var(--text2);
+      margin-bottom: 8px
+    }
+
+    .empty-text {
+      font-size: .85rem;
+      line-height: 1.6
+    }
+
+    .posts-loading {
+      display: flex;
+      justify-content: center;
+      padding: 64px 0
+    }
+
+    .loading-dots {
+      display: flex;
+      gap: 8px
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border2);
+      animation: bounce 1.2s infinite
+    }
+
+    .loading-dots span:nth-child(2) {
+      animation-delay: .15s
+    }
+
+    .loading-dots span:nth-child(3) {
+      animation-delay: .3s
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 24px;
+      backdrop-filter: blur(6px);
+      animation: fadeIn .2s ease
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp .3s cubic-bezier(.16, 1, .3, 1)
+    }
+
+    .modal-title {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px
+    }
+
+    .modal-text {
+      color: var(--text2);
+      font-size: .88rem;
+      line-height: 1.6;
+      margin-bottom: 24px
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 13px 18px;
+      border-radius: 11px;
+      font-size: .86rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 300;
+      animation: slideUp .3s cubic-bezier(.16, 1, .3, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .toast.success::before {
+      content: '✓';
+      color: var(--success);
+      font-weight: 700;
+      font-size: 1rem
+    }
+
+    .toast.error::before {
+      content: '✕';
+      color: var(--error);
+      font-weight: 700;
+      font-size: 1rem
+    }
+
+    @media(max-width:640px) {
+      .navbar {
+        padding: 0 18px
+      }
+
+      .app-body {
+        padding: 28px 16px
+      }
+
+      .post-card {
+        padding: 20px
+      }
+
+      .profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
 
-<!-- AUTH -->
-<div id="auth-page">
-  <div class="auth-card">
-    <div class="auth-logo">Student<span>Hub</span></div>
-    <div class="auth-title">Bienvenue 👋</div>
-    <div class="auth-sub">Connecte-toi ou crée un compte pour commencer.</div>
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchAuthTab('login')">Connexion</button>
-      <button class="tab-btn" onclick="switchAuthTab('register')">Inscription</button>
-    </div>
-    <div id="login-form">
-      <div class="form-group"><label>Email ou username</label><input type="text" id="login-id" placeholder="john@example.com"/></div>
-      <div class="form-group"><label>Mot de passe</label><input type="password" id="login-pw" placeholder="••••••••"/></div>
-      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Se connecter</button>
-      <div class="alert alert-error" id="login-error"></div>
-    </div>
-    <div id="register-form" class="hidden">
-      <div class="form-group"><label>Username</label><input type="text" id="reg-user" placeholder="johndoe"/></div>
-      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="john@example.com"/></div>
-      <div class="form-group"><label>Mot de passe</label><input type="password" id="reg-pw" placeholder="Min. 6 caractères"/></div>
-      <button class="btn btn-primary" id="register-btn" onclick="doRegister()">Créer un compte</button>
-      <div class="alert alert-error" id="register-error"></div>
-    </div>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app-page" class="hidden">
-  <nav class="navbar">
-    <div class="navbar-brand" onclick="navigateTo('feed')">Student<span>Hub</span></div>
-    <div class="navbar-right">
-      <span class="ws-dot" id="ws-dot" title="Temps réel"></span>
-      <button class="notif-bell" id="notif-bell" onclick="toggleNotifications()" title="Notifications">
-        🔔
-        <span class="notif-badge hidden" id="notif-badge">0</span>
-      </button>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="navbar-avatar" id="nav-avatar" onclick="goToMyProfile()">?</div>
-        <span class="navbar-username" id="nav-username" onclick="goToMyProfile()">—</span>
+  <!-- AUTH -->
+  <div id="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">Student<span>Hub</span></div>
+      <div class="auth-title">Bienvenue 👋</div>
+      <div class="auth-sub">Connecte-toi ou crée un compte pour commencer.</div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchAuthTab('login')">Connexion</button>
+        <button class="tab-btn" onclick="switchAuthTab('register')">Inscription</button>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Déconnexion</button>
-    </div>
-  </nav>
-
-  <!-- NOTIFICATIONS DROPDOWN -->
-  <div class="notif-dropdown hidden" id="notif-dropdown">
-    <div class="notif-header">
-      <div class="notif-title">Notifications</div>
-      <button class="notif-mark-all" onclick="markAllAsRead()">Tout marquer comme lu</button>
-    </div>
-    <div class="notif-list" id="notif-list">
-      <div class="notif-empty">
-        <div class="notif-empty-icon">🔔</div>
-        <div>Aucune notification</div>
+      <div id="login-form">
+        <div class="form-group"><label>Email ou username</label><input type="text" id="login-id"
+            placeholder="john@example.com" /></div>
+        <div class="form-group"><label>Mot de passe</label><input type="password" id="login-pw"
+            placeholder="••••••••" /></div>
+        <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Se connecter</button>
+        <div class="alert alert-error" id="login-error"></div>
+      </div>
+      <div id="register-form" class="hidden">
+        <div class="form-group"><label>Username</label><input type="text" id="reg-user" placeholder="johndoe" /></div>
+        <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="john@example.com" />
+        </div>
+        <div class="form-group"><label>Mot de passe</label><input type="password" id="reg-pw"
+            placeholder="Min. 6 caractères" /></div>
+        <button class="btn btn-primary" id="register-btn" onclick="doRegister()">Créer un compte</button>
+        <div class="alert alert-error" id="register-error"></div>
       </div>
     </div>
   </div>
 
-  <!-- FEED VIEW -->
-  <main class="app-body" id="feed-view">
-    <div class="section-header">
-      <div>
-        <div class="section-title">Le fil</div>
-        <div class="section-count" id="post-count"></div>
+  <!-- APP -->
+  <div id="app-page" class="hidden">
+    <nav class="navbar">
+      <div class="navbar-brand" onclick="navigateTo('feed')">Student<span>Hub</span></div>
+      <div class="navbar-right">
+        <span class="ws-dot" id="ws-dot" title="Temps réel"></span>
+        <button class="notif-bell" id="notif-bell" onclick="toggleNotifications()" title="Notifications">
+          🔔
+          <span class="notif-badge hidden" id="notif-badge">0</span>
+        </button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="navbar-avatar" id="nav-avatar" onclick="goToMyProfile()">?</div>
+          <span class="navbar-username" id="nav-username" onclick="goToMyProfile()">—</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="doLogout()">Déconnexion</button>
       </div>
-    </div>
-    <div class="create-prompt" onclick="showCreateForm()" id="create-prompt">
-      <div class="create-prompt-avatar" id="prompt-initial">?</div>
-      <div class="create-prompt-text">Quoi de neuf ? Publie un article…</div>
-    </div>
-    <div class="post-form-card hidden" id="post-form-card">
-      <div class="post-form-label" id="form-mode-label">Nouveau post</div>
-      <div class="form-group"><label>Titre</label><input type="text" id="post-title-input" placeholder="Un titre accrocheur…"/></div>
-      <div class="form-group"><label>Contenu</label><textarea id="post-content-input" placeholder="Exprime-toi…"></textarea></div>
-      <div class="image-upload-section">
-        <label class="image-upload-label" for="post-image-input">
-          📷 Ajouter des images (max 3)
-        </label>
-        <input type="file" id="post-image-input" class="image-upload-input" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple onchange="handleImageSelect(event)"/>
-        <div id="image-previews" class="image-previews"></div>
-      </div>
-      <div class="post-form-actions">
-        <button class="btn btn-ghost btn-sm" onclick="hidePostForm()">Annuler</button>
-        <button class="btn btn-primary btn-sm" id="form-submit-btn" onclick="submitPost()">Publier</button>
-      </div>
-      <div class="alert alert-error hidden" id="form-error"></div>
-    </div>
-    <div id="posts-container">
-      <div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>
-    </div>
-  </main>
+    </nav>
 
-  <!-- PROFILE VIEW -->
-  <main class="app-body hidden" id="profile-view">
-    <div id="profile-content"></div>
-  </main>
-</div>
+    <!-- NOTIFICATIONS DROPDOWN -->
+    <div class="notif-dropdown hidden" id="notif-dropdown">
+      <div class="notif-header">
+        <div class="notif-title">Notifications</div>
+        <button class="notif-mark-all" onclick="markAllAsRead()">Tout marquer comme lu</button>
+      </div>
+      <div class="notif-list" id="notif-list">
+        <div class="notif-empty">
+          <div class="notif-empty-icon">🔔</div>
+          <div>Aucune notification</div>
+        </div>
+      </div>
+    </div>
 
-<!-- DELETE MODAL -->
-<div class="modal-overlay hidden" id="delete-modal">
-  <div class="modal">
-    <div class="modal-title">Supprimer ce post ?</div>
-    <div class="modal-text">Cette action est irréversible.</div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">Annuler</button>
-      <button class="btn btn-sm" id="confirm-delete-btn" style="background:var(--error);color:#fff;font-family:var(--font-head)" onclick="confirmDelete()">Supprimer</button>
+    <!-- FEED VIEW -->
+    <main class="app-body" id="feed-view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Le fil</div>
+          <div class="section-count" id="post-count"></div>
+        </div>
+      </div>
+      <div class="create-prompt" onclick="showCreateForm()" id="create-prompt">
+        <div class="create-prompt-avatar" id="prompt-initial">?</div>
+        <div class="create-prompt-text">Quoi de neuf ? Publie un article…</div>
+      </div>
+      <div class="post-form-card hidden" id="post-form-card">
+        <div class="post-form-label" id="form-mode-label">Nouveau post</div>
+        <div class="form-group"><label>Titre</label><input type="text" id="post-title-input"
+            placeholder="Un titre accrocheur…" /></div>
+        <div class="form-group"><label>Contenu</label><textarea id="post-content-input"
+            placeholder="Exprime-toi…"></textarea></div>
+        <div class="image-upload-section">
+          <label class="image-upload-label" for="post-image-input">
+            📷 Ajouter des images (max 3)
+          </label>
+          <input type="file" id="post-image-input" class="image-upload-input"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp" multiple onchange="handleImageSelect(event)" />
+          <div id="image-previews" class="image-previews"></div>
+        </div>
+        <div class="post-form-actions">
+          <button class="btn btn-ghost btn-sm" onclick="hidePostForm()">Annuler</button>
+          <button class="btn btn-primary btn-sm" id="form-submit-btn" onclick="submitPost()">Publier</button>
+        </div>
+        <div class="alert alert-error hidden" id="form-error"></div>
+      </div>
+      <div id="posts-container">
+        <div class="posts-loading">
+          <div class="loading-dots"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- PROFILE VIEW -->
+    <main class="app-body hidden" id="profile-view">
+      <div id="profile-content"></div>
+    </main>
+  </div>
+
+  <!-- DELETE MODAL -->
+  <div class="modal-overlay hidden" id="delete-modal">
+    <div class="modal">
+      <div class="modal-title">Supprimer ce post ?</div>
+      <div class="modal-text">Cette action est irréversible.</div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">Annuler</button>
+        <button class="btn btn-sm" id="confirm-delete-btn"
+          style="background:var(--error);color:#fff;font-family:var(--font-head)"
+          onclick="confirmDelete()">Supprimer</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- REPORT MODAL -->
-<div class="modal-overlay hidden" id="report-modal">
-  <div class="modal">
-    <div class="modal-title">Signaler <span id="report-username"></span></div>
-    <div class="modal-text">Sélectionnez une raison pour ce signalement</div>
-    <div class="report-form">
-      <div class="report-reasons">
-        <div class="report-reason" data-reason="SPAM">Spam</div>
-        <div class="report-reason" data-reason="HARASSMENT">Harcèlement</div>
-        <div class="report-reason" data-reason="INAPPROPRIATE_CONTENT">Contenu inapproprié</div>
-        <div class="report-reason" data-reason="HATE_SPEECH">Discours haineux</div>
-        <div class="report-reason" data-reason="OTHER">Autre</div>
+  <!-- REPORT MODAL -->
+  <div class="modal-overlay hidden" id="report-modal">
+    <div class="modal">
+      <div class="modal-title">Signaler <span id="report-username"></span></div>
+      <div class="modal-text">Sélectionnez une raison pour ce signalement</div>
+      <div class="report-form">
+        <div class="report-reasons">
+          <div class="report-reason" data-reason="SPAM">Spam</div>
+          <div class="report-reason" data-reason="HARASSMENT">Harcèlement</div>
+          <div class="report-reason" data-reason="INAPPROPRIATE_CONTENT">Contenu inapproprié</div>
+          <div class="report-reason" data-reason="HATE_SPEECH">Discours haineux</div>
+          <div class="report-reason" data-reason="OTHER">Autre</div>
+        </div>
+        <textarea id="report-description" class="report-textarea" placeholder="Description (optionnel)"></textarea>
+        <div id="report-error" class="alert alert-error hidden"></div>
       </div>
-      <textarea id="report-description" class="report-textarea" placeholder="Description (optionnel)"></textarea>
-      <div id="report-error" class="alert alert-error hidden"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeReportModal()">Annuler</button>
-      <button class="btn btn-sm" id="submit-report-btn" style="background:var(--error);color:#fff;font-family:var(--font-head)" onclick="submitReport()">Signaler</button>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeReportModal()">Annuler</button>
+        <button class="btn btn-sm" id="submit-report-btn"
+          style="background:var(--error);color:#fff;font-family:var(--font-head)"
+          onclick="submitReport()">Signaler</button>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-const API = 'http://localhost:8080/api';
-const WS_URL = 'http://localhost:8080/ws';
-const STORAGE_KEY = 'studenthub_session';
+  <script>
+    const API = 'http://localhost:8080/api';
+    const WS_URL = 'http://localhost:8080/ws';
+    const STORAGE_KEY = 'studenthub_session';
 
-let state = {
-  token: null, user: null, posts: [], followingUsers: new Set(),
-  editingPostId: null, deletingPostId: null, selectedImages: [],
-  openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null,
-  notifications: [], unreadCount: 0, notifDropdownOpen: false
-};
+    let state = {
+      token: null, user: null, posts: [], followingUsers: new Set(),
+      editingPostId: null, deletingPostId: null, selectedImages: [],
+      openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null,
+      notifications: [], unreadCount: 0, notifDropdownOpen: false
+    };
 
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const initial = u => (u||'?')[0].toUpperCase();
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const initial = u => (u || '?')[0].toUpperCase();
 
-function formatDate(s){
-  const d=new Date(s), diff=(Date.now()-d)/1000;
-  if(diff<60) return "à l'instant";
-  if(diff<3600) return `il y a ${Math.floor(diff/60)} min`;
-  if(diff<86400) return `il y a ${Math.floor(diff/3600)} h`;
-  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
-}
+    function formatDate(s) {
+      const d = new Date(s), diff = (Date.now() - d) / 1000;
+      if (diff < 60) return "à l'instant";
+      if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+      if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
 
-function toast(msg, type='success'){
-  document.querySelector('.toast')?.remove();
-  const el = document.createElement('div');
-  el.className = `toast ${type}`; el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; }, 2500);
-  setTimeout(()=>el.remove(), 2800);
-}
+    function toast(msg, type = 'success') {
+      document.querySelector('.toast')?.remove();
+      const el = document.createElement('div');
+      el.className = `toast ${type}`; el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; }, 2500);
+      setTimeout(() => el.remove(), 2800);
+    }
 
-function setLoading(id, loading, label){ const b=$(id); b.disabled=loading; b.innerHTML=loading?`<span class="spinner"></span> Chargement…`:label; }
-function showAlert(id, msg){ const el=$(id); el.textContent=msg; el.className='alert alert-error show'; }
-function hideAlert(id){ const el=$(id); if(el){ el.textContent=''; el.className='alert alert-error'; } }
+    function setLoading(id, loading, label) { const b = $(id); b.disabled = loading; b.innerHTML = loading ? `<span class="spinner"></span> Chargement…` : label; }
+    function showAlert(id, msg) { const el = $(id); el.textContent = msg; el.className = 'alert alert-error show'; }
+    function hideAlert(id) { const el = $(id); if (el) { el.textContent = ''; el.className = 'alert alert-error'; } }
 
-// ══════════════════════════════════
-// ROUTING
-// ══════════════════════════════════
-function navigateTo(view, params){
-  state.currentView = view;
-  if(view === 'feed'){
-    $('feed-view').classList.remove('hidden');
-    $('profile-view').classList.add('hidden');
-    hidePostForm();
-  }else if(view === 'profile'){
-    $('feed-view').classList.add('hidden');
-    $('profile-view').classList.remove('hidden');
-    loadProfileView(params.userId);
-  }
-}
+    // ══════════════════════════════════
+    // ROUTING
+    // ══════════════════════════════════
+    function navigateTo(view, params) {
+      state.currentView = view;
+      if (view === 'feed') {
+        $('feed-view').classList.remove('hidden');
+        $('profile-view').classList.add('hidden');
+        hidePostForm();
+      } else if (view === 'profile') {
+        $('feed-view').classList.add('hidden');
+        $('profile-view').classList.remove('hidden');
+        loadProfileView(params.userId);
+      }
+    }
 
-function goToProfile(userId){
-  navigateTo('profile', {userId});
-}
+    function goToProfile(userId) {
+      navigateTo('profile', { userId });
+    }
 
-function goToMyProfile(){
-  if(state.user) goToProfile(state.user.id);
-}
+    function goToMyProfile() {
+      if (state.user) goToProfile(state.user.id);
+    }
 
-// ══════════════════════════════════
-// PERSISTANCE
-// ══════════════════════════════════
-function saveSession(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({token: state.token, user: state.user}));
-}
-function loadSession(){
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const session = JSON.parse(raw);
-    if (session.token && session.user) return session;
-  } catch {}
-  return null;
-}
-function clearSession(){
-  localStorage.removeItem(STORAGE_KEY);
-}
+    // ══════════════════════════════════
+    // PERSISTANCE
+    // ══════════════════════════════════
+    function saveSession() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: state.token, user: state.user }));
+    }
+    function loadSession() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const session = JSON.parse(raw);
+        if (session.token && session.user) return session;
+      } catch { }
+      return null;
+    }
+    function clearSession() {
+      localStorage.removeItem(STORAGE_KEY);
+    }
 
-// ══════════════════════════════════
-// WEBSOCKET
-// ══════════════════════════════════
-function connectWebSocket(){
-  const socket = new SockJS(WS_URL);
-  state.stompClient = Stomp.over(socket);
-  state.stompClient.debug = null;
-  state.stompClient.connect({}, () => {
-    $('ws-dot').classList.add('connected');
-    state.stompClient.subscribe('/topic/posts', (msg) => {
-      const event = JSON.parse(msg.body);
-      handlePostEvent(event);
-    });
-    state.stompClient.subscribe('/topic/likes', (msg) => {
-      const update = JSON.parse(msg.body);
-      handleLikeUpdate(update);
-    });
-    state.stompClient.subscribe('/topic/follows', (msg) => {
-      const update = JSON.parse(msg.body);
-      handleFollowerUpdate(update);
-    });
-    
-    // Subscribe to personal notifications
-    if (state.user) {
-      state.stompClient.subscribe('/topic/notifications/' + state.user.id, (msg) => {
-        const notification = JSON.parse(msg.body);
-        handleNewNotification(notification);
+    // ══════════════════════════════════
+    // WEBSOCKET
+    // ══════════════════════════════════
+    function connectWebSocket() {
+      const socket = new SockJS(WS_URL);
+      state.stompClient = Stomp.over(socket);
+      state.stompClient.debug = null;
+      state.stompClient.connect({}, () => {
+        $('ws-dot').classList.add('connected');
+        state.stompClient.subscribe('/topic/posts', (msg) => {
+          const event = JSON.parse(msg.body);
+          handlePostEvent(event);
+        });
+        state.stompClient.subscribe('/topic/likes', (msg) => {
+          const update = JSON.parse(msg.body);
+          handleLikeUpdate(update);
+        });
+        state.stompClient.subscribe('/topic/follows', (msg) => {
+          const update = JSON.parse(msg.body);
+          handleFollowerUpdate(update);
+        });
+
+        // Subscribe to personal notifications
+        if (state.user) {
+          state.stompClient.subscribe('/topic/notifications/' + state.user.id, (msg) => {
+            const notification = JSON.parse(msg.body);
+            handleNewNotification(notification);
+          });
+        }
+      }, () => {
+        $('ws-dot').classList.remove('connected');
+        setTimeout(connectWebSocket, 3000);
       });
     }
-  }, () => {
-    $('ws-dot').classList.remove('connected');
-    setTimeout(connectWebSocket, 3000);
-  });
-}
-function disconnectWebSocket(){
-  if (state.stompClient && state.stompClient.connected) state.stompClient.disconnect();
-  state.stompClient = null;
-  $('ws-dot').classList.remove('connected');
-}
-function subscribeToPostComments(postId){
-  if (!state.stompClient || !state.stompClient.connected) return;
-  state.stompClient.subscribe(`/topic/comments/${postId}`, (msg) => {
-    const event = JSON.parse(msg.body);
-    handleCommentEvent(postId, event);
-  });
-}
-function handlePostEvent(event){
-  switch(event.type){
-    case 'POST_CREATED': {
-      const post = event.data;
-      if (state.user && post.authorId === state.user.id) return;
-      state.posts.unshift(post);
-      if(state.currentView === 'feed') prependPostCard(post);
-      updatePostCount();
-      toast(`✍️ ${post.authorUsername} a publié un nouveau post`);
-      break;
+    function disconnectWebSocket() {
+      if (state.stompClient && state.stompClient.connected) state.stompClient.disconnect();
+      state.stompClient = null;
+      $('ws-dot').classList.remove('connected');
     }
-    case 'POST_UPDATED': {
-      const updated = event.data;
-      const idx = state.posts.findIndex(p => p.id === updated.id);
-      if (idx !== -1) state.posts[idx] = { ...state.posts[idx], ...updated };
-      updatePostCard(updated);
-      break;
+    function subscribeToPostComments(postId) {
+      if (!state.stompClient || !state.stompClient.connected) return;
+      state.stompClient.subscribe(`/topic/comments/${postId}`, (msg) => {
+        const event = JSON.parse(msg.body);
+        handleCommentEvent(postId, event);
+      });
     }
-    case 'POST_DELETED': {
-      const id = event.data;
-      state.posts = state.posts.filter(p => p.id !== id);
-      const card = $(`post-${id}`);
-      if (card) { card.style.transition = 'opacity .3s'; card.style.opacity = '0'; setTimeout(()=>card.remove(), 300); }
-      updatePostCount();
-      break;
+    function handlePostEvent(event) {
+      switch (event.type) {
+        case 'POST_CREATED': {
+          const post = event.data;
+          if (state.user && post.authorId === state.user.id) return;
+          state.posts.unshift(post);
+          if (state.currentView === 'feed') prependPostCard(post);
+          updatePostCount();
+          toast(`✍️ ${post.authorUsername} a publié un nouveau post`);
+          break;
+        }
+        case 'POST_UPDATED': {
+          const updated = event.data;
+          const idx = state.posts.findIndex(p => p.id === updated.id);
+          if (idx !== -1) state.posts[idx] = { ...state.posts[idx], ...updated };
+          updatePostCard(updated);
+          break;
+        }
+        case 'POST_DELETED': {
+          const id = event.data;
+          state.posts = state.posts.filter(p => p.id !== id);
+          const card = $(`post-${id}`);
+          if (card) { card.style.transition = 'opacity .3s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 300); }
+          updatePostCount();
+          break;
+        }
+        case 'COMMENT_COUNT_UPDATED': {
+          const { postId, count } = event.data;
+          const post = state.posts.find(p => p.id === postId);
+          if (post) post.commentCount = count;
+          const el = $(`comment-count-${postId}`);
+          if (el) el.textContent = count;
+          break;
+        }
+      }
     }
-    case 'COMMENT_COUNT_UPDATED': {
-      const { postId, count } = event.data;
-      const post = state.posts.find(p => p.id === postId);
-      if (post) post.commentCount = count;
-      const el = $(`comment-count-${postId}`);
-      if (el) el.textContent = count;
-      break;
+    function handleLikeUpdate(update) {
+      const post = state.posts.find(p => p.id === update.postId);
+      if (post) post.likeCount = update.likeCount;
+      const countEl = $(`like-count-${update.postId}`);
+      if (countEl) countEl.textContent = update.likeCount;
     }
-  }
-}
-function handleLikeUpdate(update){
-  const post = state.posts.find(p => p.id === update.postId);
-  if (post) post.likeCount = update.likeCount;
-  const countEl = $(`like-count-${update.postId}`);
-  if (countEl) countEl.textContent = update.likeCount;
-}
-function handleFollowerUpdate(update){
-  // Si on est sur la page profil de l'utilisateur concerné, mettre à jour le compteur
-  if(state.currentView === 'profile' && state.currentProfileUserId === update.userId){
-    const followerCountEl = $('follower-count');
-    if(followerCountEl) followerCountEl.textContent = update.followerCount;
-  }
-}
-function handleCommentEvent(postId, event){
-  if (!state.openComments[postId]) return;
-  if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') loadComments(postId);
-}
-function prependPostCard(post){
-  const container = $('posts-container');
-  const emptyState = container.querySelector('.empty-state');
-  if (emptyState) container.innerHTML = '';
-  const div = document.createElement('div');
-  div.innerHTML = buildPostCardHtml(post, 0);
-  const card = div.firstElementChild;
-  card.classList.add('new-flash');
-  container.insertBefore(card, container.firstChild);
-}
-function updatePostCard(post){
-  const titleEl = document.querySelector(`#post-${post.id} .post-title`);
-  const previewEl = $(`preview-${post.id}`);
-  const fullEl = $(`full-${post.id}`);
-  if (titleEl) titleEl.textContent = post.title;
-  if (previewEl) previewEl.textContent = post.content;
-  if (fullEl) fullEl.textContent = post.content;
-}
-function updatePostCount(){
-  const n = state.posts.length;
-  $('post-count').textContent = n === 0 ? 'Aucun post' : `${n} post${n>1?'s':''}`;
-}
+    function handleFollowerUpdate(update) {
+      // Si on est sur la page profil de l'utilisateur concerné, mettre à jour le compteur
+      if (state.currentView === 'profile' && state.currentProfileUserId === update.userId) {
+        const followerCountEl = $('follower-count');
+        if (followerCountEl) followerCountEl.textContent = update.followerCount;
+      }
+    }
+    function handleCommentEvent(postId, event) {
+      if (!state.openComments[postId]) return;
+      if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') loadComments(postId);
+    }
+    function prependPostCard(post) {
+      const container = $('posts-container');
+      const emptyState = container.querySelector('.empty-state');
+      if (emptyState) container.innerHTML = '';
+      const div = document.createElement('div');
+      div.innerHTML = buildPostCardHtml(post, 0);
+      const card = div.firstElementChild;
+      card.classList.add('new-flash');
+      container.insertBefore(card, container.firstChild);
+    }
+    function updatePostCard(post) {
+      const titleEl = document.querySelector(`#post-${post.id} .post-title`);
+      const previewEl = $(`preview-${post.id}`);
+      const fullEl = $(`full-${post.id}`);
+      if (titleEl) titleEl.textContent = post.title;
+      if (previewEl) previewEl.textContent = post.content;
+      if (fullEl) fullEl.textContent = post.content;
+    }
+    function updatePostCount() {
+      const n = state.posts.length;
+      $('post-count').textContent = n === 0 ? 'Aucun post' : `${n} post${n > 1 ? 's' : ''}`;
+    }
 
-// ══════════════════════════════════
-// AUTH
-// ══════════════════════════════════
-function switchAuthTab(tab){
-  const l = tab === 'login';
-  $('login-form').classList.toggle('hidden', !l);
-  $('register-form').classList.toggle('hidden', l);
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', l ? i===0 : i===1));
-}
-async function doLogin(){
-  const identifier = $('login-id').value.trim(), password = $('login-pw').value;
-  hideAlert('login-error');
-  if (!identifier || !password){ showAlert('login-error', 'Remplis tous les champs.'); return; }
-  setLoading('login-btn', true, 'Se connecter');
-  try{
-    const res = await fetch(`${API}/auth/login`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({identifier, password})});
-    const data = await res.json();
-    if (res.ok) onAuthSuccess(data);
-    else showAlert('login-error', data.message || 'Identifiants incorrects.');
-  }catch{ showAlert('login-error', "Impossible de contacter l'API."); }
-  finally{ setLoading('login-btn', false, 'Se connecter'); }
-}
-async function doRegister(){
-  const username = $('reg-user').value.trim(), email = $('reg-email').value.trim(), password = $('reg-pw').value;
-  hideAlert('register-error');
-  if (!username || !email || !password){ showAlert('register-error', 'Remplis tous les champs.'); return; }
-  setLoading('register-btn', true, 'Créer un compte');
-  try{
-    const res = await fetch(`${API}/auth/register`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username, email, password})});
-    const data = await res.json();
-    if (res.ok) onAuthSuccess(data);
-    else showAlert('register-error', data.errors ? Object.values(data.errors).join(' · ') : (data.message || 'Erreur.'));
-  }catch{ showAlert('register-error', "Impossible de contacter l'API."); }
-  finally{ setLoading('register-btn', false, 'Créer un compte'); }
-}
-function onAuthSuccess(data){
-  state.token = data.token;
-  state.user = {id: data.id, username: data.username, email: data.email, role: data.role};
-  saveSession();
-  mountApp();
-}
-function mountApp(){
-  $('nav-avatar').textContent = initial(state.user.username);
-  $('nav-username').textContent = state.user.username;
-  $('prompt-initial').textContent = initial(state.user.username);
-  $('prompt-initial').style.background = 'linear-gradient(135deg,var(--accent),var(--accent2))';
-  $('prompt-initial').style.color = '#fff';
-  $('auth-page').classList.add('hidden');
-  $('app-page').classList.remove('hidden');
-  connectWebSocket();
-  navigateTo('feed');
-  loadPosts();
-  loadNotifications();
-  loadUnreadCount();
-}
-function doLogout(){
-  disconnectWebSocket();
-  clearSession();
-  state = {token:null, user:null, posts:[], followingUsers: new Set(), editingPostId:null, deletingPostId:null, selectedImages:[], openComments:{}, stompClient:null, currentView:'feed', currentProfileUserId:null, notifications:[], unreadCount:0, notifDropdownOpen:false};
-  $('app-page').classList.add('hidden');
-  $('auth-page').classList.remove('hidden');
-  hidePostForm();
-  ['login-id','login-pw','reg-user','reg-email','reg-pw'].forEach(id => $(id).value = '');
-  switchAuthTab('login');
-}
+    // ══════════════════════════════════
+    // AUTH
+    // ══════════════════════════════════
+    function switchAuthTab(tab) {
+      const l = tab === 'login';
+      $('login-form').classList.toggle('hidden', !l);
+      $('register-form').classList.toggle('hidden', l);
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', l ? i === 0 : i === 1));
+    }
+    async function doLogin() {
+      const identifier = $('login-id').value.trim(), password = $('login-pw').value;
+      hideAlert('login-error');
+      if (!identifier || !password) { showAlert('login-error', 'Remplis tous les champs.'); return; }
+      setLoading('login-btn', true, 'Se connecter');
+      try {
+        const res = await fetch(`${API}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier, password }) });
+        const data = await res.json();
+        if (res.ok) onAuthSuccess(data);
+        else showAlert('login-error', data.message || 'Identifiants incorrects.');
+      } catch { showAlert('login-error', "Impossible de contacter l'API."); }
+      finally { setLoading('login-btn', false, 'Se connecter'); }
+    }
+    async function doRegister() {
+      const username = $('reg-user').value.trim(), email = $('reg-email').value.trim(), password = $('reg-pw').value;
+      hideAlert('register-error');
+      if (!username || !email || !password) { showAlert('register-error', 'Remplis tous les champs.'); return; }
+      setLoading('register-btn', true, 'Créer un compte');
+      try {
+        const res = await fetch(`${API}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email, password }) });
+        const data = await res.json();
+        if (res.ok) onAuthSuccess(data);
+        else showAlert('register-error', data.errors ? Object.values(data.errors).join(' · ') : (data.message || 'Erreur.'));
+      } catch { showAlert('register-error', "Impossible de contacter l'API."); }
+      finally { setLoading('register-btn', false, 'Créer un compte'); }
+    }
+    function onAuthSuccess(data) {
+      state.token = data.token;
+      state.user = { id: data.id, username: data.username, email: data.email, role: data.role };
+      saveSession();
+      mountApp();
+    }
+    function mountApp() {
+      $('nav-avatar').textContent = initial(state.user.username);
+      $('nav-username').textContent = state.user.username;
+      $('prompt-initial').textContent = initial(state.user.username);
+      $('prompt-initial').style.background = 'linear-gradient(135deg,var(--accent),var(--accent2))';
+      $('prompt-initial').style.color = '#fff';
+      $('auth-page').classList.add('hidden');
+      $('app-page').classList.remove('hidden');
+      connectWebSocket();
+      navigateTo('feed');
+      loadPosts();
+      loadNotifications();
+      loadUnreadCount();
+    }
+    function doLogout() {
+      disconnectWebSocket();
+      clearSession();
+      state = { token: null, user: null, posts: [], followingUsers: new Set(), editingPostId: null, deletingPostId: null, selectedImages: [], openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null, notifications: [], unreadCount: 0, notifDropdownOpen: false };
+      $('app-page').classList.add('hidden');
+      $('auth-page').classList.remove('hidden');
+      hidePostForm();
+      ['login-id', 'login-pw', 'reg-user', 'reg-email', 'reg-pw'].forEach(id => $(id).value = '');
+      switchAuthTab('login');
+    }
 
-// ══════════════════════════════════
-// POSTS
-// ══════════════════════════════════
-async function loadPosts(){
-  $('posts-container').innerHTML = `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
-  try{
-    const res = await fetch(`${API}/posts`, {headers: state.token ? {'Authorization':`Bearer ${state.token}`} : {}});
-    if (!res.ok) throw new Error();
-    state.posts = await res.json();
-    renderPosts();
-  }catch{
-    $('posts-container').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur de chargement</div></div>`;
-  }
-}
+    // ══════════════════════════════════
+    // POSTS
+    // ══════════════════════════════════
+    async function loadPosts() {
+      $('posts-container').innerHTML = `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+      try {
+        const res = await fetch(`${API}/posts`, { headers: state.token ? { 'Authorization': `Bearer ${state.token}` } : {} });
+        if (!res.ok) throw new Error();
+        state.posts = await res.json();
+        renderPosts();
+      } catch {
+        $('posts-container').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur de chargement</div></div>`;
+      }
+    }
 
-function buildPostCardHtml(post, delay){
-  const own = state.user && post.authorId === state.user.id;
-  const liked = post.likedByCurrentUser;
-  const commentsOpen = state.openComments[post.id];
-  return `
+    function buildPostCardHtml(post, delay) {
+      const own = state.user && post.authorId === state.user.id;
+      const liked = post.likedByCurrentUser;
+      const commentsOpen = state.openComments[post.id];
+      return `
   <div class="post-card" id="post-${post.id}" style="animation-delay:${delay}s">
     <div class="post-header">
       <div class="post-meta">
-        <div class="post-avatar ${own?'own':''}">${initial(post.authorUsername)}</div>
+        <div class="post-avatar ${own ? 'own' : ''}">${initial(post.authorUsername)}</div>
         <div>
           <div style="display:flex;align-items:center">
             <span class="post-author" onclick="goToProfile(${post.authorId})">${esc(post.authorUsername)}</span>
@@ -688,109 +1999,109 @@ function buildPostCardHtml(post, delay){
     <div class="post-preview" id="preview-${post.id}">${esc(post.content)}</div>
     <div class="post-full hidden" id="full-${post.id}">${esc(post.content)}</div>
     <div class="post-footer">
-      <button class="action-btn ${liked?'liked':''}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
-        ${liked?'❤️':'🤍'} <span id="like-count-${post.id}">${post.likeCount}</span>
+      <button class="action-btn ${liked ? 'liked' : ''}" id="like-btn-${post.id}" onclick="toggleLike(${post.id})">
+        ${liked ? '❤️' : '🤍'} <span id="like-count-${post.id}">${post.likeCount}</span>
       </button>
-      <button class="action-btn ${commentsOpen?'comments-open':''}" id="comment-toggle-${post.id}" onclick="toggleComments(${post.id})">
+      <button class="action-btn ${commentsOpen ? 'comments-open' : ''}" id="comment-toggle-${post.id}" onclick="toggleComments(${post.id})">
         💬 <span id="comment-count-${post.id}">${post.commentCount}</span>
       </button>
       <button class="read-more" id="readmore-${post.id}" onclick="toggleExpand(${post.id})">Lire la suite →</button>
     </div>
     <div class="comments-section hidden" id="comments-${post.id}"></div>
   </div>`;
-}
-function renderPosts(){
-  const n = state.posts.length;
-  $('post-count').textContent = n === 0 ? 'Aucun post' : `${n} post${n>1?'s':''}`;
-  if (n === 0){
-    $('posts-container').innerHTML = `<div class="empty-state"><div class="empty-icon">✍️</div><div class="empty-title">Aucun post pour l'instant</div><div class="empty-text">Sois le premier à publier quelque chose !</div></div>`;
-    return;
-  }
-  $('posts-container').innerHTML = state.posts.map((post, i) => buildPostCardHtml(post, Math.min(i*.05,.4))).join('');
-  Object.keys(state.openComments).forEach(postId => {
-    if (state.openComments[postId]) loadComments(Number(postId));
-  });
-}
-function toggleExpand(id){
-  const p=$(`preview-${id}`), f=$(`full-${id}`), b=$(`readmore-${id}`);
-  const exp = f.classList.contains('hidden');
-  p.classList.toggle('hidden', exp); f.classList.toggle('hidden', !exp);
-  b.textContent = exp ? '← Réduire' : 'Lire la suite →';
-}
+    }
+    function renderPosts() {
+      const n = state.posts.length;
+      $('post-count').textContent = n === 0 ? 'Aucun post' : `${n} post${n > 1 ? 's' : ''}`;
+      if (n === 0) {
+        $('posts-container').innerHTML = `<div class="empty-state"><div class="empty-icon">✍️</div><div class="empty-title">Aucun post pour l'instant</div><div class="empty-text">Sois le premier à publier quelque chose !</div></div>`;
+        return;
+      }
+      $('posts-container').innerHTML = state.posts.map((post, i) => buildPostCardHtml(post, Math.min(i * .05, .4))).join('');
+      Object.keys(state.openComments).forEach(postId => {
+        if (state.openComments[postId]) loadComments(Number(postId));
+      });
+    }
+    function toggleExpand(id) {
+      const p = $(`preview-${id}`), f = $(`full-${id}`), b = $(`readmore-${id}`);
+      const exp = f.classList.contains('hidden');
+      p.classList.toggle('hidden', exp); f.classList.toggle('hidden', !exp);
+      b.textContent = exp ? '← Réduire' : 'Lire la suite →';
+    }
 
-// ══════════════════════════════════
-// LIKES
-// ══════════════════════════════════
-async function toggleLike(postId){
-  if (!state.token){ toast('Connecte-toi pour liker.', 'error'); return; }
-  const btn = $(`like-btn-${postId}`);
-  btn.disabled = true;
-  try{
-    const res = await fetch(`${API}/posts/${postId}/like`, {method:'POST', headers:{'Authorization':`Bearer ${state.token}`}});
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const post = state.posts.find(p => p.id === postId);
-    if (post){ post.likeCount = data.likeCount; post.likedByCurrentUser = data.likedByCurrentUser; }
-    btn.className = `action-btn ${data.likedByCurrentUser?'liked':''}`;
-    btn.innerHTML = `${data.likedByCurrentUser?'❤️':'🤍'} <span id="like-count-${postId}">${data.likeCount}</span>`;
-  }catch{ toast('Erreur.', 'error'); }
-  finally{ btn.disabled = false; }
-}
+    // ══════════════════════════════════
+    // LIKES
+    // ══════════════════════════════════
+    async function toggleLike(postId) {
+      if (!state.token) { toast('Connecte-toi pour liker.', 'error'); return; }
+      const btn = $(`like-btn-${postId}`);
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${API}/posts/${postId}/like`, { method: 'POST', headers: { 'Authorization': `Bearer ${state.token}` } });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const post = state.posts.find(p => p.id === postId);
+        if (post) { post.likeCount = data.likeCount; post.likedByCurrentUser = data.likedByCurrentUser; }
+        btn.className = `action-btn ${data.likedByCurrentUser ? 'liked' : ''}`;
+        btn.innerHTML = `${data.likedByCurrentUser ? '❤️' : '🤍'} <span id="like-count-${postId}">${data.likeCount}</span>`;
+      } catch { toast('Erreur.', 'error'); }
+      finally { btn.disabled = false; }
+    }
 
-// ══════════════════════════════════
-// COMMENTAIRES
-// ══════════════════════════════════
-function toggleComments(postId){
-  const section = $(`comments-${postId}`);
-  const btn = $(`comment-toggle-${postId}`);
-  const isOpen = !section.classList.contains('hidden');
-  if (isOpen){
-    section.classList.add('hidden');
-    btn.classList.remove('comments-open');
-    state.openComments[postId] = false;
-  } else {
-    section.classList.remove('hidden');
-    btn.classList.add('comments-open');
-    state.openComments[postId] = true;
-    subscribeToPostComments(postId);
-    loadComments(postId);
-  }
-}
-async function loadComments(postId){
-  const section = $(`comments-${postId}`);
-  if (!section) return;
-  section.innerHTML = `<div style="display:flex;justify-content:center;padding:16px 0"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
-  try{
-    const res = await fetch(`${API}/posts/${postId}/comments`);
-    renderComments(postId, await res.json());
-  }catch{
-    section.innerHTML = `<div class="no-comments">Erreur lors du chargement.</div>`;
-  }
-}
-function renderComments(postId, comments){
-  const section = $(`comments-${postId}`);
-  if (!section) return;
-  const myInitial = state.user ? initial(state.user.username) : '?';
-  const listHtml = comments.length === 0
-    ? `<div class="no-comments">Aucun commentaire. Sois le premier !</div>`
-    : comments.map(c => {
-        const own = state.user && c.authorId === state.user.id;
-        return `
+    // ══════════════════════════════════
+    // COMMENTAIRES
+    // ══════════════════════════════════
+    function toggleComments(postId) {
+      const section = $(`comments-${postId}`);
+      const btn = $(`comment-toggle-${postId}`);
+      const isOpen = !section.classList.contains('hidden');
+      if (isOpen) {
+        section.classList.add('hidden');
+        btn.classList.remove('comments-open');
+        state.openComments[postId] = false;
+      } else {
+        section.classList.remove('hidden');
+        btn.classList.add('comments-open');
+        state.openComments[postId] = true;
+        subscribeToPostComments(postId);
+        loadComments(postId);
+      }
+    }
+    async function loadComments(postId) {
+      const section = $(`comments-${postId}`);
+      if (!section) return;
+      section.innerHTML = `<div style="display:flex;justify-content:center;padding:16px 0"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+      try {
+        const res = await fetch(`${API}/posts/${postId}/comments`);
+        renderComments(postId, await res.json());
+      } catch {
+        section.innerHTML = `<div class="no-comments">Erreur lors du chargement.</div>`;
+      }
+    }
+    function renderComments(postId, comments) {
+      const section = $(`comments-${postId}`);
+      if (!section) return;
+      const myInitial = state.user ? initial(state.user.username) : '?';
+      const listHtml = comments.length === 0
+        ? `<div class="no-comments">Aucun commentaire. Sois le premier !</div>`
+        : comments.map(c => {
+          const own = state.user && c.authorId === state.user.id;
+          return `
         <div class="comment-item" id="comment-item-${c.id}">
-          <div class="comment-avatar ${own?'own':''}">${initial(c.authorUsername)}</div>
+          <div class="comment-avatar ${own ? 'own' : ''}">${initial(c.authorUsername)}</div>
           <div class="comment-body">
             <div class="comment-header">
               <div style="display:flex;align-items:center;gap:8px">
                 <span class="comment-author">${esc(c.authorUsername)}</span>
                 <span class="comment-date">${formatDate(c.createdAt)}</span>
               </div>
-              ${own?`<button class="delete-comment-btn" onclick="deleteComment(${postId},${c.id})" title="Supprimer">✕</button>`:''}
+              ${own ? `<button class="delete-comment-btn" onclick="deleteComment(${postId},${c.id})" title="Supprimer">✕</button>` : ''}
             </div>
             <div class="comment-text">${esc(c.content)}</div>
           </div>
         </div>`;
-      }).join('');
-  section.innerHTML = `
+        }).join('');
+      section.innerHTML = `
     <div class="comments-list">${listHtml}</div>
     ${state.token ? `
     <div class="comment-input-row">
@@ -799,312 +2110,312 @@ function renderComments(postId, comments){
         onkeydown="handleCommentKey(event,${postId})"></textarea>
       <button class="comment-submit" id="comment-submit-${postId}" onclick="submitComment(${postId})">Envoyer</button>
     </div>` : '<div class="no-comments">Connecte-toi pour commenter.</div>'}`;
-}
-function handleCommentKey(e, postId){ if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); submitComment(postId); } }
-async function submitComment(postId){
-  const input = $(`comment-input-${postId}`);
-  const content = input.value.trim();
-  if (!content) return;
-  const btn = $(`comment-submit-${postId}`);
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-  try{
-    const res = await fetch(`${API}/posts/${postId}/comments`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization':`Bearer ${state.token}`},
-      body: JSON.stringify({content})
-    });
-    if (!res.ok) throw new Error();
-    input.value = '';
-    const post = state.posts.find(p => p.id === postId);
-    if (post) post.commentCount++;
-    $(`comment-count-${postId}`).textContent = post ? post.commentCount : '';
-    loadComments(postId);
-  }catch{ toast("Erreur lors de l'envoi.", 'error'); }
-  finally{ btn.disabled = false; btn.textContent = 'Envoyer'; }
-}
-async function deleteComment(postId, commentId){
-  try{
-    const res = await fetch(`${API}/posts/${postId}/comments/${commentId}`, {
-      method: 'DELETE',
-      headers: {'Authorization': `Bearer ${state.token}`}
-    });
-    if (res.ok || res.status === 204){
-      const post = state.posts.find(p => p.id === postId);
-      if (post && post.commentCount > 0) post.commentCount--;
-      $(`comment-count-${postId}`).textContent = post ? post.commentCount : '';
-      loadComments(postId);
-      toast('Commentaire supprimé.');
     }
-  }catch{ toast('Erreur.', 'error'); }
-}
+    function handleCommentKey(e, postId) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitComment(postId); } }
+    async function submitComment(postId) {
+      const input = $(`comment-input-${postId}`);
+      const content = input.value.trim();
+      if (!content) return;
+      const btn = $(`comment-submit-${postId}`);
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const res = await fetch(`${API}/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+          body: JSON.stringify({ content })
+        });
+        if (!res.ok) throw new Error();
+        input.value = '';
+        const post = state.posts.find(p => p.id === postId);
+        if (post) post.commentCount++;
+        $(`comment-count-${postId}`).textContent = post ? post.commentCount : '';
+        loadComments(postId);
+      } catch { toast("Erreur lors de l'envoi.", 'error'); }
+      finally { btn.disabled = false; btn.textContent = 'Envoyer'; }
+    }
+    async function deleteComment(postId, commentId) {
+      try {
+        const res = await fetch(`${API}/posts/${postId}/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok || res.status === 204) {
+          const post = state.posts.find(p => p.id === postId);
+          if (post && post.commentCount > 0) post.commentCount--;
+          $(`comment-count-${postId}`).textContent = post ? post.commentCount : '';
+          loadComments(postId);
+          toast('Commentaire supprimé.');
+        }
+      } catch { toast('Erreur.', 'error'); }
+    }
 
-// ══════════════════════════════════
-// POST FORM
-// ══════════════════════════════════
-function showCreateForm(){
-  state.editingPostId = null;
-  $('form-mode-label').textContent = 'Nouveau post';
-  $('form-submit-btn').textContent = 'Publier';
-  $('post-title-input').value = ''; $('post-content-input').value = '';
-  clearImagePreviews();
-  $('create-prompt').classList.add('hidden');
-  $('post-form-card').classList.remove('hidden');
-  $('post-title-input').focus(); hideAlert('form-error');
-}
-function hidePostForm(){
-  $('post-form-card').classList.add('hidden');
-  $('create-prompt').classList.remove('hidden');
-  state.editingPostId = null;
-  clearImagePreviews();
-}
-function startEdit(id){
-  const post = state.posts.find(p => p.id === id); if (!post) return;
-  state.editingPostId = id;
-  $('form-mode-label').textContent = 'Modifier le post';
-  $('form-submit-btn').textContent = 'Enregistrer';
-  $('post-title-input').value = post.title; $('post-content-input').value = post.content;
-  $('create-prompt').classList.add('hidden');
-  $('post-form-card').classList.remove('hidden');
-  $('post-form-card').scrollIntoView({behavior:'smooth', block:'start'});
-  $('post-title-input').focus(); hideAlert('form-error');
-}
-async function submitPost(){
-  const title = $('post-title-input').value.trim(), content = $('post-content-input').value.trim();
-  hideAlert('form-error');
-  if (!title || !content){ const el=$('form-error'); el.textContent='Le titre et le contenu sont requis.'; el.className='alert alert-error show'; return; }
-  const isEdit = state.editingPostId !== null;
-  const label = isEdit ? 'Enregistrer' : 'Publier';
-  setLoading('form-submit-btn', true, label);
-  
-  try{
-    // Utiliser FormData pour envoyer les fichiers
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('content', content);
-    
-    // Ajouter toutes les images sélectionnées
-    if (state.selectedImages.length > 0) {
-      state.selectedImages.forEach(file => {
-        formData.append('images', file);
-      });
+    // ══════════════════════════════════
+    // POST FORM
+    // ══════════════════════════════════
+    function showCreateForm() {
+      state.editingPostId = null;
+      $('form-mode-label').textContent = 'Nouveau post';
+      $('form-submit-btn').textContent = 'Publier';
+      $('post-title-input').value = ''; $('post-content-input').value = '';
+      clearImagePreviews();
+      $('create-prompt').classList.add('hidden');
+      $('post-form-card').classList.remove('hidden');
+      $('post-title-input').focus(); hideAlert('form-error');
     }
-    
-    const res = await fetch(isEdit ? `${API}/posts/${state.editingPostId}` : `${API}/posts`, {
-      method: isEdit ? 'PUT' : 'POST',
-      headers: {'Authorization':`Bearer ${state.token}`},
-      body: formData
-    });
-    
-    if (res.ok){
-      hidePostForm();
-      toast(isEdit ? 'Post modifié !' : 'Post publié !');
-      await loadPosts();
-    } else {
-      const data = await res.json();
-      const el=$('form-error'); el.textContent=data.errors?Object.values(data.errors).join(' · '):(data.message||'Erreur.'); el.className='alert alert-error show';
+    function hidePostForm() {
+      $('post-form-card').classList.add('hidden');
+      $('create-prompt').classList.remove('hidden');
+      state.editingPostId = null;
+      clearImagePreviews();
     }
-  }catch(err){ 
-    console.error(err);
-    const el=$('form-error'); el.textContent='Erreur réseau.'; el.className='alert alert-error show'; 
-  }
-  finally{ setLoading('form-submit-btn', false, label); }
-}
+    function startEdit(id) {
+      const post = state.posts.find(p => p.id === id); if (!post) return;
+      state.editingPostId = id;
+      $('form-mode-label').textContent = 'Modifier le post';
+      $('form-submit-btn').textContent = 'Enregistrer';
+      $('post-title-input').value = post.title; $('post-content-input').value = post.content;
+      $('create-prompt').classList.add('hidden');
+      $('post-form-card').classList.remove('hidden');
+      $('post-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('post-title-input').focus(); hideAlert('form-error');
+    }
+    async function submitPost() {
+      const title = $('post-title-input').value.trim(), content = $('post-content-input').value.trim();
+      hideAlert('form-error');
+      if (!title || !content) { const el = $('form-error'); el.textContent = 'Le titre et le contenu sont requis.'; el.className = 'alert alert-error show'; return; }
+      const isEdit = state.editingPostId !== null;
+      const label = isEdit ? 'Enregistrer' : 'Publier';
+      setLoading('form-submit-btn', true, label);
 
-// Gestion de l'image
-function handleImageSelect(event){
-  const files = Array.from(event.target.files);
-  if (files.length === 0) return;
-  
-  // Validation : max 3 images
-  if (state.selectedImages.length + files.length > 3) {
-    const el=$('form-error'); 
-    el.textContent='Maximum 3 images par post.'; 
-    el.className='alert alert-error show';
-    event.target.value = '';
-    return;
-  }
-  
-  // Validation de chaque fichier
-  const maxSize = 5 * 1024 * 1024; // 5MB
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  
-  for (const file of files) {
-    if (file.size > maxSize) {
-      const el=$('form-error'); 
-      el.textContent='Chaque image ne doit pas dépasser 5MB.'; 
-      el.className='alert alert-error show';
-      event.target.value = '';
-      return;
-    }
-    
-    if (!allowedTypes.includes(file.type)) {
-      const el=$('form-error'); 
-      el.textContent='Seules les images (JPG, PNG, GIF, WEBP) sont acceptées.'; 
-      el.className='alert alert-error show';
-      event.target.value = '';
-      return;
-    }
-  }
-  
-  // Ajouter les fichiers au state
-  state.selectedImages.push(...files);
-  
-  // Afficher tous les previews
-  renderImagePreviews();
-  hideAlert('form-error');
-}
+      try {
+        // Utiliser FormData pour envoyer les fichiers
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('content', content);
 
-function renderImagePreviews(){
-  const container = $('image-previews');
-  container.innerHTML = state.selectedImages.map((file, index) => {
-    const url = URL.createObjectURL(file);
-    return `
+        // Ajouter toutes les images sélectionnées
+        if (state.selectedImages.length > 0) {
+          state.selectedImages.forEach(file => {
+            formData.append('images', file);
+          });
+        }
+
+        const res = await fetch(isEdit ? `${API}/posts/${state.editingPostId}` : `${API}/posts`, {
+          method: isEdit ? 'PUT' : 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` },
+          body: formData
+        });
+
+        if (res.ok) {
+          hidePostForm();
+          toast(isEdit ? 'Post modifié !' : 'Post publié !');
+          await loadPosts();
+        } else {
+          const data = await res.json();
+          const el = $('form-error'); el.textContent = data.errors ? Object.values(data.errors).join(' · ') : (data.message || 'Erreur.'); el.className = 'alert alert-error show';
+        }
+      } catch (err) {
+        console.error(err);
+        const el = $('form-error'); el.textContent = 'Erreur réseau.'; el.className = 'alert alert-error show';
+      }
+      finally { setLoading('form-submit-btn', false, label); }
+    }
+
+    // Gestion de l'image
+    function handleImageSelect(event) {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+
+      // Validation : max 3 images
+      if (state.selectedImages.length + files.length > 3) {
+        const el = $('form-error');
+        el.textContent = 'Maximum 3 images par post.';
+        el.className = 'alert alert-error show';
+        event.target.value = '';
+        return;
+      }
+
+      // Validation de chaque fichier
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+      for (const file of files) {
+        if (file.size > maxSize) {
+          const el = $('form-error');
+          el.textContent = 'Chaque image ne doit pas dépasser 5MB.';
+          el.className = 'alert alert-error show';
+          event.target.value = '';
+          return;
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+          const el = $('form-error');
+          el.textContent = 'Seules les images (JPG, PNG, GIF, WEBP) sont acceptées.';
+          el.className = 'alert alert-error show';
+          event.target.value = '';
+          return;
+        }
+      }
+
+      // Ajouter les fichiers au state
+      state.selectedImages.push(...files);
+
+      // Afficher tous les previews
+      renderImagePreviews();
+      hideAlert('form-error');
+    }
+
+    function renderImagePreviews() {
+      const container = $('image-previews');
+      container.innerHTML = state.selectedImages.map((file, index) => {
+        const url = URL.createObjectURL(file);
+        return `
       <div class="image-preview-item">
-        <img src="${url}" class="image-preview" alt="Preview ${index+1}"/>
+        <img src="${url}" class="image-preview" alt="Preview ${index + 1}"/>
         <button type="button" class="remove-image-btn" onclick="removeImage(${index})" title="Retirer">✕</button>
       </div>
     `;
-  }).join('');
-}
-
-function removeImage(index){
-  state.selectedImages.splice(index, 1);
-  renderImagePreviews();
-  if (state.selectedImages.length === 0) {
-    $('post-image-input').value = '';
-  }
-}
-
-function clearImagePreviews(){
-  state.selectedImages = [];
-  $('post-image-input').value = '';
-  $('image-previews').innerHTML = '';
-}
-
-// ══════════════════════════════════
-// DELETE MODAL
-// ══════════════════════════════════
-function openDeleteModal(id){ state.deletingPostId = id; $('delete-modal').classList.remove('hidden'); }
-function closeDeleteModal(){ state.deletingPostId = null; $('delete-modal').classList.add('hidden'); }
-async function confirmDelete(){
-  const id = state.deletingPostId; if (!id) return;
-  $('confirm-delete-btn').disabled = true; $('confirm-delete-btn').innerHTML = '<span class="spinner"></span>';
-  try{
-    const res = await fetch(`${API}/posts/${id}`, {method:'DELETE', headers:{'Authorization':`Bearer ${state.token}`}});
-    if (res.ok || res.status === 204){ 
-      closeDeleteModal(); 
-      toast('Post supprimé.'); 
-      if(state.currentView === 'feed') await loadPosts();
-      else if(state.currentView === 'profile') await loadProfileView(state.currentProfileUserId);
+      }).join('');
     }
-    else { closeDeleteModal(); toast('Erreur.', 'error'); }
-  }catch{ closeDeleteModal(); toast('Erreur réseau.', 'error'); }
-}
 
-// ══════════════════════════════════
-// REPORT MODAL
-// ══════════════════════════════════
-let reportState = { userId: null, username: null, selectedReason: null };
+    function removeImage(index) {
+      state.selectedImages.splice(index, 1);
+      renderImagePreviews();
+      if (state.selectedImages.length === 0) {
+        $('post-image-input').value = '';
+      }
+    }
 
-function openReportModal(userId, username){
-  reportState.userId = userId;
-  reportState.username = username;
-  reportState.selectedReason = null;
-  
-  $('report-username').textContent = username;
-  $('report-description').value = '';
-  hideAlert('report-error');
-  
-  // Désélectionner toutes les raisons
-  document.querySelectorAll('.report-reason').forEach(el => el.classList.remove('selected'));
-  
-  $('report-modal').classList.remove('hidden');
-}
+    function clearImagePreviews() {
+      state.selectedImages = [];
+      $('post-image-input').value = '';
+      $('image-previews').innerHTML = '';
+    }
 
-function closeReportModal(){
-  reportState = { userId: null, username: null, selectedReason: null };
-  $('report-modal').classList.add('hidden');
-}
+    // ══════════════════════════════════
+    // DELETE MODAL
+    // ══════════════════════════════════
+    function openDeleteModal(id) { state.deletingPostId = id; $('delete-modal').classList.remove('hidden'); }
+    function closeDeleteModal() { state.deletingPostId = null; $('delete-modal').classList.add('hidden'); }
+    async function confirmDelete() {
+      const id = state.deletingPostId; if (!id) return;
+      $('confirm-delete-btn').disabled = true; $('confirm-delete-btn').innerHTML = '<span class="spinner"></span>';
+      try {
+        const res = await fetch(`${API}/posts/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${state.token}` } });
+        if (res.ok || res.status === 204) {
+          closeDeleteModal();
+          toast('Post supprimé.');
+          if (state.currentView === 'feed') await loadPosts();
+          else if (state.currentView === 'profile') await loadProfileView(state.currentProfileUserId);
+        }
+        else { closeDeleteModal(); toast('Erreur.', 'error'); }
+      } catch { closeDeleteModal(); toast('Erreur réseau.', 'error'); }
+    }
 
-// Sélectionner une raison
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.report-reason').forEach(el => {
-    el.addEventListener('click', () => {
-      document.querySelectorAll('.report-reason').forEach(r => r.classList.remove('selected'));
-      el.classList.add('selected');
-      reportState.selectedReason = el.dataset.reason;
+    // ══════════════════════════════════
+    // REPORT MODAL
+    // ══════════════════════════════════
+    let reportState = { userId: null, username: null, selectedReason: null };
+
+    function openReportModal(userId, username) {
+      reportState.userId = userId;
+      reportState.username = username;
+      reportState.selectedReason = null;
+
+      $('report-username').textContent = username;
+      $('report-description').value = '';
       hideAlert('report-error');
-    });
-  });
-});
 
-async function submitReport(){
-  if (!reportState.selectedReason) {
-    const el = $('report-error');
-    el.textContent = 'Veuillez sélectionner une raison.';
-    el.classList.remove('hidden');
-    return;
-  }
-  
-  setLoading('submit-report-btn', true, 'Signaler');
-  
-  try {
-    const res = await fetch(`${API}/reports/user/${reportState.userId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.token}`
-      },
-      body: JSON.stringify({
-        reason: reportState.selectedReason,
-        description: $('report-description').value.trim() || null
-      })
-    });
-    
-    if (res.ok || res.status === 201) {
-      closeReportModal();
-      toast('Signalement envoyé. Merci pour votre contribution.');
-    } else {
-      const data = await res.json();
-      const el = $('report-error');
-      el.textContent = data.message || 'Erreur lors du signalement.';
-      el.classList.remove('hidden');
+      // Désélectionner toutes les raisons
+      document.querySelectorAll('.report-reason').forEach(el => el.classList.remove('selected'));
+
+      $('report-modal').classList.remove('hidden');
     }
-  } catch (err) {
-    const el = $('report-error');
-    el.textContent = 'Erreur réseau.';
-    el.classList.remove('hidden');
-  } finally {
-    setLoading('submit-report-btn', false, 'Signaler');
-  }
-}
 
-// ══════════════════════════════════
-// PROFILE VIEW
-// ══════════════════════════════════
-async function loadProfileView(userId){
-  state.currentProfileUserId = userId;
-  const content = $('profile-content');
-  content.innerHTML = `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
-  
-  try{
-    const statsRes = await fetch(`${API}/users/${userId}/stats`, {headers: state.token ? {'Authorization':`Bearer ${state.token}`} : {}});
-    const stats = await statsRes.json();
-    
-    const postsRes = await fetch(`${API}/users/${userId}/posts`, {headers: state.token ? {'Authorization':`Bearer ${state.token}`} : {}});
-    const posts = await postsRes.json();
-    
-    renderProfileView(stats, posts);
-  }catch{
-    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur</div><div class="empty-text">Impossible de charger le profil.</div></div>`;
-  }
-}
+    function closeReportModal() {
+      reportState = { userId: null, username: null, selectedReason: null };
+      $('report-modal').classList.add('hidden');
+    }
 
-function renderProfileView(stats, posts){
-  const isOwnProfile = state.user && state.user.id === stats.userId;
-  const content = $('profile-content');
-  
-  content.innerHTML = `
+    // Sélectionner une raison
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.report-reason').forEach(el => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.report-reason').forEach(r => r.classList.remove('selected'));
+          el.classList.add('selected');
+          reportState.selectedReason = el.dataset.reason;
+          hideAlert('report-error');
+        });
+      });
+    });
+
+    async function submitReport() {
+      if (!reportState.selectedReason) {
+        const el = $('report-error');
+        el.textContent = 'Veuillez sélectionner une raison.';
+        el.classList.remove('hidden');
+        return;
+      }
+
+      setLoading('submit-report-btn', true, 'Signaler');
+
+      try {
+        const res = await fetch(`${API}/reports/user/${reportState.userId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify({
+            reason: reportState.selectedReason,
+            description: $('report-description').value.trim() || null
+          })
+        });
+
+        if (res.ok || res.status === 201) {
+          closeReportModal();
+          toast('Signalement envoyé. Merci pour votre contribution.');
+        } else {
+          const data = await res.json();
+          const el = $('report-error');
+          el.textContent = data.message || 'Erreur lors du signalement.';
+          el.classList.remove('hidden');
+        }
+      } catch (err) {
+        const el = $('report-error');
+        el.textContent = 'Erreur réseau.';
+        el.classList.remove('hidden');
+      } finally {
+        setLoading('submit-report-btn', false, 'Signaler');
+      }
+    }
+
+    // ══════════════════════════════════
+    // PROFILE VIEW
+    // ══════════════════════════════════
+    async function loadProfileView(userId) {
+      state.currentProfileUserId = userId;
+      const content = $('profile-content');
+      content.innerHTML = `<div class="posts-loading"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+
+      try {
+        const statsRes = await fetch(`${API}/users/${userId}/stats`, { headers: state.token ? { 'Authorization': `Bearer ${state.token}` } : {} });
+        const stats = await statsRes.json();
+
+        const postsRes = await fetch(`${API}/users/${userId}/posts`, { headers: state.token ? { 'Authorization': `Bearer ${state.token}` } : {} });
+        const posts = await postsRes.json();
+
+        renderProfileView(stats, posts);
+      } catch {
+        content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erreur</div><div class="empty-text">Impossible de charger le profil.</div></div>`;
+      }
+    }
+
+    function renderProfileView(stats, posts) {
+      const isOwnProfile = state.user && state.user.id === stats.userId;
+      const content = $('profile-content');
+
+      content.innerHTML = `
     <div class="profile-card">
       <div class="profile-header">
         <div class="profile-avatar">${initial(stats.username)}</div>
@@ -1126,7 +2437,7 @@ function renderProfileView(stats, posts){
           </div>
           ${!isOwnProfile && state.token ? `
           <div class="profile-actions">
-            <button class="btn-follow ${stats.followedByCurrentUser?'following':''}" id="profile-follow-btn" onclick="toggleFollow(${stats.userId})">
+            <button class="btn-follow ${stats.followedByCurrentUser ? 'following' : ''}" id="profile-follow-btn" onclick="toggleFollow(${stats.userId})">
               ${stats.followedByCurrentUser ? 'Abonné' : 'S\'abonner'}
             </button>
             <button class="report-btn" onclick="openReportModal(${stats.userId}, '${stats.username}')">
@@ -1140,122 +2451,122 @@ function renderProfileView(stats, posts){
     <div class="section-header">
       <div>
         <div class="section-title">Posts de ${esc(stats.username)}</div>
-        <div class="section-count">${posts.length} post${posts.length>1?'s':''}</div>
+        <div class="section-count">${posts.length} post${posts.length > 1 ? 's' : ''}</div>
       </div>
     </div>
     
     <div id="profile-posts-container">
-      ${posts.length === 0 
-        ? `<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Aucun post</div><div class="empty-text">Cet utilisateur n'a encore rien publié.</div></div>`
-        : posts.map((post, i) => buildPostCardHtml(post, Math.min(i*.05,.4))).join('')
-      }
+      ${posts.length === 0
+          ? `<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">Aucun post</div><div class="empty-text">Cet utilisateur n'a encore rien publié.</div></div>`
+          : posts.map((post, i) => buildPostCardHtml(post, Math.min(i * .05, .4))).join('')
+        }
     </div>
   `;
-}
-
-async function toggleFollow(userId){
-  if (!state.token){ toast('Connecte-toi pour suivre.', 'error'); return; }
-  const btn = $('profile-follow-btn');
-  if(!btn) return;
-  btn.disabled = true;
-  
-  try{
-    const res = await fetch(`${API}/users/${userId}/follow`, {
-      method:'POST',
-      headers:{'Authorization':`Bearer ${state.token}`}
-    });
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    
-    btn.classList.toggle('following', data.following);
-    btn.textContent = data.following ? 'Abonné' : 'S\'abonner';
-    
-    const followerCountEl = $('follower-count');
-    if(followerCountEl) followerCountEl.textContent = data.followerCount;
-    
-    if(data.following) state.followingUsers.add(userId);
-    else state.followingUsers.delete(userId);
-    
-    toast(data.following ? `Vous suivez maintenant cet utilisateur` : `Vous ne suivez plus cet utilisateur`);
-  }catch{
-    toast('Erreur.', 'error');
-  }finally{
-    btn.disabled = false;
-  }
-}
-
-// ══════════════════════════════════
-// NOTIFICATIONS
-// ══════════════════════════════════
-async function loadNotifications(){
-  if(!state.token) return;
-  try{
-    const res = await fetch(`${API}/notifications`, {
-      headers: {'Authorization': `Bearer ${state.token}`}
-    });
-    if(res.ok){
-      state.notifications = await res.json();
-      renderNotifications();
     }
-  }catch(err){
-    console.error('Error loading notifications:', err);
-  }
-}
 
-async function loadUnreadCount(){
-  if(!state.token) return;
-  try{
-    const res = await fetch(`${API}/notifications/unread-count`, {
-      headers: {'Authorization': `Bearer ${state.token}`}
-    });
-    if(res.ok){
-      const data = await res.json();
-      state.unreadCount = data.count;
-      updateNotifBadge();
+    async function toggleFollow(userId) {
+      if (!state.token) { toast('Connecte-toi pour suivre.', 'error'); return; }
+      const btn = $('profile-follow-btn');
+      if (!btn) return;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API}/users/${userId}/follow`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        btn.classList.toggle('following', data.following);
+        btn.textContent = data.following ? 'Abonné' : 'S\'abonner';
+
+        const followerCountEl = $('follower-count');
+        if (followerCountEl) followerCountEl.textContent = data.followerCount;
+
+        if (data.following) state.followingUsers.add(userId);
+        else state.followingUsers.delete(userId);
+
+        toast(data.following ? `Vous suivez maintenant cet utilisateur` : `Vous ne suivez plus cet utilisateur`);
+      } catch {
+        toast('Erreur.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
     }
-  }catch(err){
-    console.error('Error loading unread count:', err);
-  }
-}
 
-function updateNotifBadge(){
-  const badge = $('notif-badge');
-  if(state.unreadCount > 0){
-    badge.textContent = state.unreadCount > 99 ? '99+' : state.unreadCount;
-    badge.classList.remove('hidden');
-  }else{
-    badge.classList.add('hidden');
-  }
-}
+    // ══════════════════════════════════
+    // NOTIFICATIONS
+    // ══════════════════════════════════
+    async function loadNotifications() {
+      if (!state.token) return;
+      try {
+        const res = await fetch(`${API}/notifications`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok) {
+          state.notifications = await res.json();
+          renderNotifications();
+        }
+      } catch (err) {
+        console.error('Error loading notifications:', err);
+      }
+    }
 
-function toggleNotifications(){
-  const dropdown = $('notif-dropdown');
-  state.notifDropdownOpen = !state.notifDropdownOpen;
-  dropdown.classList.toggle('hidden', !state.notifDropdownOpen);
-  
-  if(state.notifDropdownOpen){
-    renderNotifications();
-  }
-}
+    async function loadUnreadCount() {
+      if (!state.token) return;
+      try {
+        const res = await fetch(`${API}/notifications/unread-count`, {
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          state.unreadCount = data.count;
+          updateNotifBadge();
+        }
+      } catch (err) {
+        console.error('Error loading unread count:', err);
+      }
+    }
 
-function renderNotifications(){
-  const list = $('notif-list');
-  
-  if(state.notifications.length === 0){
-    list.innerHTML = `
+    function updateNotifBadge() {
+      const badge = $('notif-badge');
+      if (state.unreadCount > 0) {
+        badge.textContent = state.unreadCount > 99 ? '99+' : state.unreadCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function toggleNotifications() {
+      const dropdown = $('notif-dropdown');
+      state.notifDropdownOpen = !state.notifDropdownOpen;
+      dropdown.classList.toggle('hidden', !state.notifDropdownOpen);
+
+      if (state.notifDropdownOpen) {
+        renderNotifications();
+      }
+    }
+
+    function renderNotifications() {
+      const list = $('notif-list');
+
+      if (state.notifications.length === 0) {
+        list.innerHTML = `
       <div class="notif-empty">
         <div class="notif-empty-icon">🔔</div>
         <div>Aucune notification</div>
       </div>
     `;
-    return;
-  }
-  
-  list.innerHTML = state.notifications.map(n => {
-    const icon = n.type === 'POST_LIKED' ? '❤️' : n.type === 'POST_COMMENTED' ? '💬' : '👤';
-    const iconClass = n.type === 'POST_LIKED' ? 'like' : n.type === 'POST_COMMENTED' ? 'comment' : 'follow';
-    
-    return `
+        return;
+      }
+
+      list.innerHTML = state.notifications.map(n => {
+        const icon = n.type === 'POST_LIKED' ? '❤️' : n.type === 'POST_COMMENTED' ? '💬' : '👤';
+        const iconClass = n.type === 'POST_LIKED' ? 'like' : n.type === 'POST_COMMENTED' ? 'comment' : 'follow';
+
+        return `
       <div class="notif-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id}, '${n.type}', ${n.relatedEntityId})">
         <div class="notif-icon ${iconClass}">${icon}</div>
         <div class="notif-content">
@@ -1266,118 +2577,119 @@ function renderNotifications(){
         </div>
       </div>
     `;
-  }).join('');
-}
-
-async function handleNotificationClick(notifId, type, relatedEntityId){
-  // Marquer comme lue
-  if(!state.notifications.find(n => n.id === notifId)?.read){
-    await markAsRead(notifId);
-  }
-  
-  // Fermer le dropdown
-  state.notifDropdownOpen = false;
-  $('notif-dropdown').classList.add('hidden');
-  
-  // Naviguer vers la ressource
-  if(type === 'NEW_FOLLOWER'){
-    goToProfile(relatedEntityId);
-  }else if(type === 'POST_LIKED' || type === 'POST_COMMENTED'){
-    navigateTo('feed');
-    // Scroll vers le post (optionnel)
-    setTimeout(() => {
-      const postCard = $(`post-${relatedEntityId}`);
-      if(postCard) postCard.scrollIntoView({behavior: 'smooth', block: 'center'});
-    }, 300);
-  }
-}
-
-async function markAsRead(notifId){
-  try{
-    const res = await fetch(`${API}/notifications/${notifId}/read`, {
-      method: 'PATCH',
-      headers: {'Authorization': `Bearer ${state.token}`}
-    });
-    if(res.ok || res.status === 204){
-      const notif = state.notifications.find(n => n.id === notifId);
-      if(notif) notif.read = true;
-      state.unreadCount = Math.max(0, state.unreadCount - 1);
-      updateNotifBadge();
-      renderNotifications();
+      }).join('');
     }
-  }catch(err){
-    console.error('Error marking notification as read:', err);
-  }
-}
 
-async function markAllAsRead(){
-  try{
-    const res = await fetch(`${API}/notifications/read-all`, {
-      method: 'PATCH',
-      headers: {'Authorization': `Bearer ${state.token}`}
-    });
-    if(res.ok || res.status === 204){
-      state.notifications.forEach(n => n.read = true);
-      state.unreadCount = 0;
-      updateNotifBadge();
-      renderNotifications();
-      toast('Toutes les notifications ont été marquées comme lues');
+    async function handleNotificationClick(notifId, type, relatedEntityId) {
+      // Marquer comme lue
+      if (!state.notifications.find(n => n.id === notifId)?.read) {
+        await markAsRead(notifId);
+      }
+
+      // Fermer le dropdown
+      state.notifDropdownOpen = false;
+      $('notif-dropdown').classList.add('hidden');
+
+      // Naviguer vers la ressource
+      if (type === 'NEW_FOLLOWER') {
+        goToProfile(relatedEntityId);
+      } else if (type === 'POST_LIKED' || type === 'POST_COMMENTED') {
+        navigateTo('feed');
+        // Scroll vers le post (optionnel)
+        setTimeout(() => {
+          const postCard = $(`post-${relatedEntityId}`);
+          if (postCard) postCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
     }
-  }catch(err){
-    console.error('Error marking all as read:', err);
-  }
-}
 
-function handleNewNotification(notification){
-  // Ajouter en début de liste
-  state.notifications.unshift(notification);
-  state.unreadCount++;
-  updateNotifBadge();
-  
-  // Si le dropdown est ouvert, rafraîchir
-  if(state.notifDropdownOpen){
-    renderNotifications();
-  }
-  
-  // Toast notification
-  const icon = notification.type === 'POST_LIKED' ? '❤️' : notification.type === 'POST_COMMENTED' ? '💬' : '👤';
-  toast(`${icon} ${notification.message}`);
-}
+    async function markAsRead(notifId) {
+      try {
+        const res = await fetch(`${API}/notifications/${notifId}/read`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok || res.status === 204) {
+          const notif = state.notifications.find(n => n.id === notifId);
+          if (notif) notif.read = true;
+          state.unreadCount = Math.max(0, state.unreadCount - 1);
+          updateNotifBadge();
+          renderNotifications();
+        }
+      } catch (err) {
+        console.error('Error marking notification as read:', err);
+      }
+    }
 
-// Fermer le dropdown quand on clique ailleurs
-document.addEventListener('click', (e) => {
-  const dropdown = $('notif-dropdown');
-  const bell = $('notif-bell');
-  if(state.notifDropdownOpen && !dropdown.contains(e.target) && !bell.contains(e.target)){
-    state.notifDropdownOpen = false;
-    dropdown.classList.add('hidden');
-  }
-});
+    async function markAllAsRead() {
+      try {
+        const res = await fetch(`${API}/notifications/read-all`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${state.token}` }
+        });
+        if (res.ok || res.status === 204) {
+          state.notifications.forEach(n => n.read = true);
+          state.unreadCount = 0;
+          updateNotifBadge();
+          renderNotifications();
+          toast('Toutes les notifications ont été marquées comme lues');
+        }
+      } catch (err) {
+        console.error('Error marking all as read:', err);
+      }
+    }
 
-// ══════════════════════════════════
-// KEYBOARD
-// ══════════════════════════════════
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape'){ hidePostForm(); closeDeleteModal(); }
-  if (e.key === 'Enter' && !e.shiftKey && !$('auth-page').classList.contains('hidden')){
-    if (!$('login-form').classList.contains('hidden')) doLogin();
-    else doRegister();
-  }
-});
-$('delete-modal').addEventListener('click', e => { if (e.target === $('delete-modal')) closeDeleteModal(); });
-$('report-modal').addEventListener('click', e => { if (e.target === $('report-modal')) closeReportModal(); });
+    function handleNewNotification(notification) {
+      // Ajouter en début de liste
+      state.notifications.unshift(notification);
+      state.unreadCount++;
+      updateNotifBadge();
 
-// ══════════════════════════════════
-// INIT
-// ══════════════════════════════════
-(function init(){
-  const session = loadSession();
-  if (session) {
-    state.token = session.token;
-    state.user = session.user;
-    mountApp();
-  }
-})();
-</script>
+      // Si le dropdown est ouvert, rafraîchir
+      if (state.notifDropdownOpen) {
+        renderNotifications();
+      }
+
+      // Toast notification
+      const icon = notification.type === 'POST_LIKED' ? '❤️' : notification.type === 'POST_COMMENTED' ? '💬' : '👤';
+      toast(`${icon} ${notification.message}`);
+    }
+
+    // Fermer le dropdown quand on clique ailleurs
+    document.addEventListener('click', (e) => {
+      const dropdown = $('notif-dropdown');
+      const bell = $('notif-bell');
+      if (state.notifDropdownOpen && !dropdown.contains(e.target) && !bell.contains(e.target)) {
+        state.notifDropdownOpen = false;
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    // ══════════════════════════════════
+    // KEYBOARD
+    // ══════════════════════════════════
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { hidePostForm(); closeDeleteModal(); }
+      if (e.key === 'Enter' && !e.shiftKey && !$('auth-page').classList.contains('hidden')) {
+        if (!$('login-form').classList.contains('hidden')) doLogin();
+        else doRegister();
+      }
+    });
+    $('delete-modal').addEventListener('click', e => { if (e.target === $('delete-modal')) closeDeleteModal(); });
+    $('report-modal').addEventListener('click', e => { if (e.target === $('report-modal')) closeReportModal(); });
+
+    // ══════════════════════════════════
+    // INIT
+    // ══════════════════════════════════
+    (function init() {
+      const session = loadSession();
+      if (session) {
+        state.token = session.token;
+        state.user = session.user;
+        mountApp();
+      }
+    })();
+  </script>
 </body>
+
 </html>
