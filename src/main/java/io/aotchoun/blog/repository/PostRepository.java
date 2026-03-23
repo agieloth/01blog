@@ -32,5 +32,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * SQL généré : SELECT * FROM posts ORDER BY created_at DESC
      */
     List<Post> findAllByOrderByCreatedAtDesc();
-    long countByAuthorId(Long authorId);   
+    long countByAuthorId(Long authorId); 
+    // long countByUserId(Long userId);
 }

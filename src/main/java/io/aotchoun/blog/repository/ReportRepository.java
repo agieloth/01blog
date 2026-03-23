@@ -19,5 +19,5 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     boolean existsByReporterIdAndReportedUserId(Long reporterId, Long reportedUserId);
     
     // Pour l'admin : compter combien de fois un user a été signalé
-    long countByReportedUserId(Long reportedUserId);
+    long countByReportedUserId(Long userId);
 }

@@ -1532,6 +1532,54 @@
         text-align: center
       }
     }
+
+    /* ══════════════════════════════════
+   ADMIN PANEL
+   ══════════════════════════════════ */
+.admin-tabs {display:flex;gap:8px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0}
+.admin-tab {background:none;border:none;color:var(--text2);padding:12px 20px;font-size:.9rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:var(--font-head)}
+.admin-tab:hover {color:var(--text);background:var(--surface2)}
+.admin-tab.active {color:var(--accent);border-bottom-color:var(--accent)}
+
+.admin-table-container {overflow-x:auto;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)}
+.admin-table {width:100%;border-collapse:collapse}
+.admin-table thead {background:var(--surface2)}
+.admin-table th {padding:16px;text-align:left;font-size:.85rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.admin-table td {padding:16px;border-bottom:1px solid var(--border);font-size:.9rem}
+.admin-table tbody tr:last-child td {border-bottom:none}
+.admin-table tbody tr:hover {background:var(--surface2)}
+
+.admin-user-cell {display:flex;align-items:center;gap:12px}
+.admin-avatar {width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.85rem;flex-shrink:0}
+.admin-user-info {display:flex;flex-direction:column;gap:2px}
+.admin-username {font-weight:600;color:var(--text)}
+.admin-email {font-size:.8rem;color:var(--muted)}
+
+.admin-badge {display:inline-block;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.admin-badge.banned {background:var(--error-bg);color:var(--error)}
+.admin-badge.active {background:var(--success-bg);color:var(--success)}
+.admin-badge.pending {background:rgba(234,179,8,.1);color:#eab308}
+.admin-badge.reviewed {background:var(--success-bg);color:var(--success)}
+.admin-badge.dismissed {background:var(--error-bg);color:var(--muted)}
+.admin-badge.user {background:var(--accent-light);color:var(--accent2)}
+.admin-badge.admin {background:rgba(244,114,182,.1);color:#f472b6}
+
+.admin-actions {display:flex;gap:8px}
+.admin-btn {padding:6px 12px;border:none;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--font-body)}
+.admin-btn-ban {background:var(--error-bg);color:var(--error)}
+.admin-btn-ban:hover {background:var(--error);color:#fff}
+.admin-btn-unban {background:var(--success-bg);color:var(--success)}
+.admin-btn-unban:hover {background:var(--success);color:#fff}
+.admin-btn-delete {background:var(--error-bg);color:var(--error)}
+.admin-btn-delete:hover {background:var(--error);color:#fff}
+.admin-btn-review {background:var(--success-bg);color:var(--success)}
+.admin-btn-review:hover {background:var(--success);color:#fff}
+.admin-btn-dismiss {background:rgba(156,163,175,.1);color:var(--muted)}
+.admin-btn-dismiss:hover {background:var(--muted);color:#fff}
+
+.admin-empty {padding:60px 20px;text-align:center;color:var(--muted);font-size:.9rem}
+.admin-post-preview {max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)}
+.admin-report-desc {max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:.85rem}
   </style>
 </head>
 
@@ -1575,6 +1623,9 @@
       <div class="navbar-brand" onclick="navigateTo('feed')">Student<span>Hub</span></div>
       <div class="navbar-right">
         <span class="ws-dot" id="ws-dot" title="Temps réel"></span>
+        <button class="btn btn-ghost btn-sm hidden" id="admin-nav-btn" onclick="navigateTo('admin')">
+  🛡️        Admin
+        </button>
         <button class="notif-bell" id="notif-bell" onclick="toggleNotifications()" title="Notifications">
           🔔
           <span class="notif-badge hidden" id="notif-badge">0</span>
@@ -1644,6 +1695,88 @@
     <main class="app-body hidden" id="profile-view">
       <div id="profile-content"></div>
     </main>
+
+    <!-- ADMIN VIEW -->
+<main class="app-body hidden" id="admin-view">
+  <div class="section-header">
+    <div>
+      <div class="section-title">🛡️ Panel Admin</div>
+      <div class="section-subtitle">Gestion des utilisateurs, posts et signalements</div>
+    </div>
+  </div>
+
+  <div class="admin-tabs">
+    <button class="admin-tab active" id="tab-users" onclick="switchAdminTab('users')">Utilisateurs</button>
+    <button class="admin-tab" id="tab-posts" onclick="switchAdminTab('posts')">Posts</button>
+    <button class="admin-tab" id="tab-reports" onclick="switchAdminTab('reports')">Signalements</button>
+  </div>
+
+  <!-- USERS TAB -->
+  <div id="admin-users-tab">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Rôles</th>
+            <th>Posts</th>
+            <th>Signalements</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-users-tbody">
+          <tr><td colspan="7" class="admin-empty">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- POSTS TAB -->
+  <div id="admin-posts-tab" class="hidden">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Titre</th>
+            <th>Auteur</th>
+            <th>Contenu</th>
+            <th>Likes</th>
+            <th>Commentaires</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-posts-tbody">
+          <tr><td colspan="7" class="admin-empty">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- REPORTS TAB -->
+  <div id="admin-reports-tab" class="hidden">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Signaleur</th>
+            <th>Signalé</th>
+            <th>Raison</th>
+            <th>Description</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="admin-reports-tbody">
+          <tr><td colspan="7" class="admin-empty">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
   </div>
 
   <!-- DELETE MODAL -->
@@ -1694,7 +1827,8 @@
       token: null, user: null, posts: [], followingUsers: new Set(),
       editingPostId: null, deletingPostId: null, selectedImages: [],
       openComments: {}, stompClient: null, currentView: 'feed', currentProfileUserId: null,
-      notifications: [], unreadCount: 0, notifDropdownOpen: false
+      notifications: [], unreadCount: 0, notifDropdownOpen: false,
+      adminTab: 'users'
     };
 
     const $ = id => document.getElementById(id);
@@ -1725,18 +1859,31 @@
     // ══════════════════════════════════
     // ROUTING
     // ══════════════════════════════════
-    function navigateTo(view, params) {
-      state.currentView = view;
-      if (view === 'feed') {
-        $('feed-view').classList.remove('hidden');
-        $('profile-view').classList.add('hidden');
-        hidePostForm();
-      } else if (view === 'profile') {
-        $('feed-view').classList.add('hidden');
-        $('profile-view').classList.remove('hidden');
-        loadProfileView(params.userId);
-      }
+  function navigateTo(view, params) {
+    state.currentView = view;
+    if (view === 'feed') {
+      $('feed-view').classList.remove('hidden');
+      $('profile-view').classList.add('hidden');
+      $('admin-view').classList.add('hidden');
+      hidePostForm();
+    } else if (view === 'profile') {
+      $('feed-view').classList.add('hidden');
+      $('profile-view').classList.remove('hidden');
+      $('admin-view').classList.add('hidden');
+      loadProfileView(params.userId);
+    } else if (view === 'admin') {
+      $('feed-view').classList.add('hidden');
+      $('profile-view').classList.add('hidden');
+      $('admin-view').classList.remove('hidden');
+      loadAdminPanel();
     }
+  }
+
+  function checkAdminRole() {
+    // Afficher le bouton admin si username === 'admin'
+    const isAdmin = state.user && state.user.username === 'admin';
+    $('admin-nav-btn').classList.toggle('hidden', !isAdmin);
+  }
 
     function goToProfile(userId) {
       navigateTo('profile', { userId });
@@ -1941,6 +2088,7 @@
       loadPosts();
       loadNotifications();
       loadUnreadCount();
+      checkAdminRole();
     }
     function doLogout() {
       disconnectWebSocket();
@@ -2689,6 +2837,256 @@
         mountApp();
       }
     })();
+
+    // ══════════════════════════════════
+// ADMIN PANEL
+// ══════════════════════════════════
+
+async function loadAdminPanel(){
+  if(state.currentView !== 'admin') return;
+  
+  // Charger l'onglet actif
+  if(state.adminTab === 'users') await loadAdminUsers();
+  else if(state.adminTab === 'posts') await loadAdminPosts();
+  else if(state.adminTab === 'reports') await loadAdminReports();
+}
+
+function switchAdminTab(tab){
+  state.adminTab = tab;
+  
+  // Update UI
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  $(`tab-${tab}`).classList.add('active');
+  
+  $('admin-users-tab').classList.toggle('hidden', tab !== 'users');
+  $('admin-posts-tab').classList.toggle('hidden', tab !== 'posts');
+  $('admin-reports-tab').classList.toggle('hidden', tab !== 'reports');
+  
+  loadAdminPanel();
+}
+
+// ─────────────────────────────────────
+// USERS MANAGEMENT
+// ─────────────────────────────────────
+
+async function loadAdminUsers(){
+  try {
+    const res = await fetch(`${API}/admin/users`, {
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    
+    if(!res.ok) {
+      $('admin-users-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur lors du chargement</td></tr>';
+      return;
+    }
+    
+    const users = await res.json();
+    
+    if(users.length === 0){
+      $('admin-users-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Aucun utilisateur</td></tr>';
+      return;
+    }
+    
+    $('admin-users-tbody').innerHTML = users.map(u => `
+      <tr>
+        <td>
+          <div class="admin-user-cell">
+            <div class="admin-avatar">${initial(u.username)}</div>
+            <div class="admin-user-info">
+              <div class="admin-username">${esc(u.username)}</div>
+              <div class="admin-email">${esc(u.email)}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          ${u.roles.map(r => `<span class="admin-badge ${r.toLowerCase()}">${r}</span>`).join(' ')}
+        </td>
+        <td>${u.postCount}</td>
+        <td>${u.reportCount}</td>
+        <td>
+          <span class="admin-badge ${u.banned ? 'banned' : 'active'}">
+            ${u.banned ? 'BANNI' : 'ACTIF'}
+          </span>
+        </td>
+        <td>${formatDate(u.createdAt)}</td>
+        <td>
+          <div class="admin-actions">
+            ${u.banned 
+              ? `<button class="admin-btn admin-btn-unban" onclick="toggleBanUser(${u.id}, false)">Débannir</button>`
+              : `<button class="admin-btn admin-btn-ban" onclick="toggleBanUser(${u.id}, true)">Bannir</button>`
+            }
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    
+  } catch(err) {
+    console.error('Admin users error:', err);
+    $('admin-users-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur réseau</td></tr>';
+  }
+}
+
+async function toggleBanUser(userId, shouldBan){
+  if(!confirm(`Êtes-vous sûr de vouloir ${shouldBan ? 'bannir' : 'débannir'} cet utilisateur ?`)) return;
+  
+  try {
+    const res = await fetch(`${API}/admin/users/${userId}/ban`, {
+      method: 'PATCH',
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    
+    if(res.ok){
+      toast(`Utilisateur ${shouldBan ? 'banni' : 'débanni'}.`);
+      await loadAdminUsers();
+    } else {
+      toast('Erreur lors de l\'opération.', 'error');
+    }
+  } catch(err) {
+    console.error('Ban error:', err);
+    toast('Erreur réseau.', 'error');
+  }
+}
+
+// ─────────────────────────────────────
+// POSTS MANAGEMENT
+// ─────────────────────────────────────
+
+async function loadAdminPosts(){
+  try {
+    const res = await fetch(`${API}/admin/posts`, {
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    
+    if(!res.ok) {
+      $('admin-posts-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur lors du chargement</td></tr>';
+      return;
+    }
+    
+    const posts = await res.json();
+    
+    if(posts.length === 0){
+      $('admin-posts-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Aucun post</td></tr>';
+      return;
+    }
+    
+    $('admin-posts-tbody').innerHTML = posts.map(p => `
+      <tr>
+        <td><strong>${esc(p.title)}</strong></td>
+        <td>${esc(p.author)}</td>
+        <td><div class="admin-post-preview">${esc(p.content)}</div></td>
+        <td>${p.likeCount}</td>
+        <td>${p.commentCount}</td>
+        <td>${formatDate(p.createdAt)}</td>
+        <td>
+          <button class="admin-btn admin-btn-delete" onclick="deletePostAdmin(${p.id})">
+            Supprimer
+          </button>
+        </td>
+      </tr>
+    `).join('');
+    
+  } catch(err) {
+    console.error('Admin posts error:', err);
+    $('admin-posts-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur réseau</td></tr>';
+  }
+}
+
+async function deletePostAdmin(postId){
+  if(!confirm('Êtes-vous sûr de vouloir supprimer ce post ?')) return;
+  
+  try {
+    const res = await fetch(`${API}/admin/posts/${postId}`, {
+      method: 'DELETE',
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    
+    if(res.ok || res.status === 204){
+      toast('Post supprimé.');
+      await loadAdminPosts();
+    } else {
+      toast('Erreur lors de la suppression.', 'error');
+    }
+  } catch(err) {
+    console.error('Delete post error:', err);
+    toast('Erreur réseau.', 'error');
+  }
+}
+
+// ─────────────────────────────────────
+// REPORTS MANAGEMENT
+// ─────────────────────────────────────
+
+async function loadAdminReports(){
+  try {
+    const res = await fetch(`${API}/admin/reports`, {
+      headers: {'Authorization': `Bearer ${state.token}`}
+    });
+    
+    if(!res.ok) {
+      $('admin-reports-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur lors du chargement</td></tr>';
+      return;
+    }
+    
+    const reports = await res.json();
+    
+    if(reports.length === 0){
+      $('admin-reports-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Aucun signalement</td></tr>';
+      return;
+    }
+    
+    $('admin-reports-tbody').innerHTML = reports.map(r => `
+      <tr>
+        <td>${esc(r.reporterUsername)}</td>
+        <td>${esc(r.reportedUsername)}</td>
+        <td><strong>${r.reason}</strong></td>
+        <td><div class="admin-report-desc">${esc(r.description || '—')}</div></td>
+        <td>
+          <span class="admin-badge ${r.status.toLowerCase()}">${r.status}</span>
+        </td>
+        <td>${formatDate(r.createdAt)}</td>
+        <td>
+          <div class="admin-actions">
+            ${r.status === 'PENDING' ? `
+              <button class="admin-btn admin-btn-review" onclick="updateReportStatus(${r.id}, 'REVIEWED')">
+                Traiter
+              </button>
+              <button class="admin-btn admin-btn-dismiss" onclick="updateReportStatus(${r.id}, 'DISMISSED')">
+                Rejeter
+              </button>
+            ` : `<span style="color:var(--muted)">Traité</span>`}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    
+  } catch(err) {
+    console.error('Admin reports error:', err);
+    $('admin-reports-tbody').innerHTML = '<tr><td colspan="7" class="admin-empty">Erreur réseau</td></tr>';
+  }
+}
+
+async function updateReportStatus(reportId, newStatus){
+  try {
+    const res = await fetch(`${API}/admin/reports/${reportId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${state.token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({status: newStatus})
+    });
+    
+    if(res.ok){
+      toast(`Signalement ${newStatus === 'REVIEWED' ? 'traité' : 'rejeté'}.`);
+      await loadAdminReports();
+    } else {
+      toast('Erreur lors de la mise à jour.', 'error');
+    }
+  } catch(err) {
+    console.error('Update report error:', err);
+    toast('Erreur réseau.', 'error');
+  }
+}
   </script>
 </body>
 
