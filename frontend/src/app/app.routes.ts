@@ -1,30 +1,31 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
-import { AdminGuard } from './core/guards/admin.guard';
+// import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/feed',
+    redirectTo: '/auth/login',  // ← Redirige vers login au début
     pathMatch: 'full'
   },
   {
     path: 'auth',
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)
-  },
-//   {
-//     path: 'feed',
-//     canActivate: [AuthGuard],
-//     loadComponent: () => import('./features/feed/feed.component').then(m => m.FeedComponent)
-//   },
-//   {
-//     path: 'profile/:id',
-//     canActivate: [AuthGuard],
-//     loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
-//   },
-//   {
-//     path: 'admin',
-//     canActivate: [AuthGuard, AdminGuard],
-//     loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent)
-//   }
+  }
+  // COMMENTÉ TEMPORAIREMENT - On créera ces composants après
+  // {
+  //   path: 'feed',
+  //   canActivate: [AuthGuard],
+  //   loadComponent: () => import('./features/feed/feed.component').then(m => m.FeedComponent)
+  // },
+  // {
+  //   path: 'profile/:id',
+  //   canActivate: [AuthGuard],
+  //   loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
+  // },
+  // {
+  //   path: 'admin',
+  //   canActivate: [AuthGuard, AdminGuard],
+  //   loadComponent: () => import('./features/admin/admin.component').then(m => m.AdminComponent)
+  // }
 ];
