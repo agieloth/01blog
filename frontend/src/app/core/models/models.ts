@@ -16,10 +16,11 @@ export interface Post {
   title: string;
   content: string;
   imageUrls: string[];
-  author: User;
+  authorId: number;              // ← Changé
+  authorUsername: string;
   likeCount: number;
   commentCount: number;
-  isLikedByCurrentUser: boolean;
+  likedByCurrentUser: boolean;
   createdAt: string;
   updatedAt: string;
 }

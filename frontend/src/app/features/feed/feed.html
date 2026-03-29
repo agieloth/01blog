@@ -1,0 +1,74 @@
+<app-navbar></app-navbar>
+
+<main class="app-body">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Le fil</div>
+      <div class="section-count">{{ posts.length }} posts</div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    Chargement des posts...
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <!-- Posts List -->
+  <div class="posts-list" *ngIf="!loading && !error">
+    <!-- Empty State -->
+    <div *ngIf="posts.length === 0" class="empty-state">
+      <div class="empty-icon">📝</div>
+      <div class="empty-title">Aucun post</div>
+      <div class="empty-text">Sois le premier à publier quelque chose !</div>
+    </div>
+
+    <!-- Post Cards -->
+    <article class="post-card" *ngFor="let post of posts">
+      <div class="post-header">
+        <div class="post-author">
+          <div class="post-avatar">{{ getInitial(post.authorUsername) }}</div>
+          <div class="post-author-info">
+            <div class="post-author-name">{{ post.authorUsername }}</div>
+            <div class="post-date">{{ formatDate(post.createdAt) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="post-content">
+        <h2 class="post-title">{{ post.title }}</h2>
+        <p class="post-text">{{ post.content }}</p>
+
+        <!-- Images -->
+        <div class="post-images" *ngIf="post.imageUrls && post.imageUrls.length > 0">
+          <img 
+            *ngFor="let imageUrl of post.imageUrls" 
+            [src]="imageUrl" 
+            [alt]="post.title"
+            class="post-image"
+          />
+        </div>
+      </div>
+
+      <div class="post-actions">
+        <button 
+          class="post-action-btn"
+          [class.liked]="post.likedByCurrentUser"
+          (click)="toggleLike(post.id)"
+        >
+          <span class="action-icon">{{ post.likedByCurrentUser ? '❤️' : '🤍' }}</span>
+          <span class="action-count">{{ post.likeCount }}</span>
+        </button>
+
+        <button class="post-action-btn">
+          <span class="action-icon">💬</span>
+          <span class="action-count">{{ post.commentCount }}</span>
+        </button>
+      </div>
+    </article>
+  </div>
+</main>

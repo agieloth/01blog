@@ -1,0 +1,28 @@
+<nav class="navbar">
+  <div class="navbar-brand" routerLink="/feed">
+    Student<span>Hub</span>
+  </div>
+  
+  <div class="navbar-right">
+    <button 
+      *ngIf="isAdmin()" 
+      class="btn btn-ghost btn-sm"
+      routerLink="/admin"
+    >
+      🛡️ Admin
+    </button>
+    
+    <div class="navbar-user" *ngIf="currentUser">
+      <div class="navbar-avatar" (click)="goToProfile()">
+        {{ getInitial(currentUser.username) }}
+      </div>
+      <span class="navbar-username" (click)="goToProfile()">
+        {{ currentUser.username }}
+      </span>
+    </div>
+    
+    <button class="btn btn-ghost btn-sm" (click)="logout()">
+      Déconnexion
+    </button>
+  </div>
+</nav>
