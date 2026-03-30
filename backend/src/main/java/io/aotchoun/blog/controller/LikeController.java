@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/posts/{postId}/like")
-@CrossOrigin(origins = "*")
+// @CrossOrigin(origins = "*")
 public class LikeController {
 
     private final LikeService likeService;

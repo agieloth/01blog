@@ -56,10 +56,6 @@ export class FeedComponent implements OnInit {
     return username ? username[0].toUpperCase() : '?';
   }
 
-  getImageUrl(filename: string): string {
-    return `${environment.uploadsUrl}/${filename}`;
-  }
-
   formatDate(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
@@ -74,5 +70,9 @@ export class FeedComponent implements OnInit {
       month: 'long', 
       year: 'numeric' 
     });
+  }
+
+  getImageUrl(filename: string): string {
+    return `${environment.uploadsUrl}/${filename}`;
   }
 }

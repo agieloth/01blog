@@ -8,6 +8,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
+  // NE PAS ajouter le token pour les images
+  if (req.url.includes('/uploads/')) {
+    return next(req);
+  }
+  
   // Ajouter le token JWT
   const token = authService.getToken();
   

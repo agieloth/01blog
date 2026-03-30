@@ -9,9 +9,7 @@
   </div>
 
   <!-- Loading -->
-  <div *ngIf="loading" class="loading-state">
-    Chargement des posts...
-  </div>
+  <div *ngIf="loading" class="loading-state">Chargement des posts...</div>
 
   <!-- Error -->
   <div *ngIf="error" class="alert alert-error">
@@ -45,9 +43,9 @@
 
         <!-- Images -->
         <div class="post-images" *ngIf="post.imageUrls && post.imageUrls.length > 0">
-          <img 
-            *ngFor="let imageUrl of post.imageUrls" 
-            [src]="imageUrl" 
+          <img
+            *ngFor="let imageUrl of post.imageUrls"
+            [src]="getImageUrl(imageUrl)"
             [alt]="post.title"
             class="post-image"
           />
@@ -55,7 +53,7 @@
       </div>
 
       <div class="post-actions">
-        <button 
+        <button
           class="post-action-btn"
           [class.liked]="post.likedByCurrentUser"
           (click)="toggleLike(post.id)"

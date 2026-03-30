@@ -14,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts/{postId}/comments")
-@CrossOrigin(origins = "*")
+// @CrossOrigin(origins = "*")
 public class CommentController {
 
     private final CommentService commentService;
