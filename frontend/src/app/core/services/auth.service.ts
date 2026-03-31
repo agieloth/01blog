@@ -5,48 +5,42 @@ import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, LoginRequest, RegisterRequest, User } from '../models/models';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiUrl = environment.apiUrl;
-  private currentUserSubject = new BehaviorSubject<User | null>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
+  private apiUrl = `${environment.apiUrl}/auth`;
+  private _currentUser$ = new BehaviorSubject<User | null>(this.loadUser());
 
-  constructor(
-    private http: HttpClient,
-    private router: Router
-  ) {
-    this.loadUserFromStorage();
+  constructor(private http: HttpClient, private router: Router) {}
+
+  get currentUser$(): Observable<User | null> {
+    return this._currentUser$.asObservable();
   }
 
-  login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, credentials)
-      .pipe(
-        tap(response => this.handleAuthSuccess(response))
-      );
+  getCurrentUser(): User | null {
+    return this._currentUser$.getValue();
   }
 
-  register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, data)
-      .pipe(
-        tap(response => this.handleAuthSuccess(response))
-      );
+  login(req: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, req).pipe(
+      tap(res => this.handleAuth(res))
+    );
+  }
+
+  register(req: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, req).pipe(
+      tap(res => this.handleAuth(res))
+    );
   }
 
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
-    this.router.navigate(['/auth/login']);
+    this._currentUser$.next(null);
+    this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
     return localStorage.getItem('token');
-  }
-
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
   }
 
   isAuthenticated(): boolean {
@@ -54,33 +48,25 @@ export class AuthService {
   }
 
   isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === 'ADMIN';
+    return this.getCurrentUser()?.role === 'ADMIN';
   }
 
-  private handleAuthSuccess(response: AuthResponse): void {
-    localStorage.setItem('token', response.token);
-    
+  private handleAuth(res: AuthResponse): void {
     const user: User = {
-      id: response.id,
-      username: response.username,
-      email: response.email,
-      role: response.role as 'USER' | 'ADMIN'
+      id: res.id,
+      username: res.username,
+      email: res.email,
+      role: res.role
     };
-    
+    localStorage.setItem('token', res.token);
     localStorage.setItem('user', JSON.stringify(user));
-    this.currentUserSubject.next(user);
+    this._currentUser$.next(user);
   }
 
-  private loadUserFromStorage(): void {
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
-      try {
-        const user = JSON.parse(userJson);
-        this.currentUserSubject.next(user);
-      } catch (e) {
-        console.error('Failed to parse user from storage', e);
-      }
-    }
+  private loadUser(): User | null {
+    try {
+      const raw = localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
   }
 }

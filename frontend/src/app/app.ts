@@ -1,12 +1,28 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from './core/services/auth.service';
+import { WebSocketService } from './core/services/websocket.service';
 
 @Component({
   selector: 'app-root',
+  standalone: true,
   imports: [RouterOutlet],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  template: `<router-outlet></router-outlet>`
 })
-export class App {
-  protected readonly title = signal('frontend');
+export class AppComponent implements OnInit {
+  constructor(private authService: AuthService, private wsService: WebSocketService) {}
+
+  ngOnInit(): void {
+    const user = this.authService.getCurrentUser();
+    if (user) {
+      this.wsService.connect(user.id);
+    }
+    this.authService.currentUser$.subscribe(user => {
+      if (user && !this.wsService.isConnected) {
+        this.wsService.connect(user.id);
+      } else if (!user) {
+        this.wsService.disconnect();
+      }
+    });
+  }
 }

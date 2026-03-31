@@ -1,0 +1,121 @@
+<app-navbar></app-navbar>
+
+<main class="app-body">
+  <!-- Loading -->
+  <div *ngIf="loading" class="posts-loading">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="empty-state">
+    <div class="empty-icon">⚠️</div>
+    <div class="empty-title">{{ error }}</div>
+    <button class="btn btn-ghost btn-sm" (click)="goBack()">← Retour</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && stats">
+    <!-- Profile card -->
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar">{{ getInitial(stats.username) }}</div>
+        <div class="profile-info">
+          <div class="profile-username">{{ stats.username }}</div>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="profile-stat-value">{{ stats.postCount }}</span>
+              <span class="profile-stat-label">Posts</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-value">{{ stats.followerCount }}</span>
+              <span class="profile-stat-label">Abonnés</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-value">{{ stats.followingCount }}</span>
+              <span class="profile-stat-label">Abonnements</span>
+            </div>
+          </div>
+
+          <!-- Actions si pas son propre profil -->
+          <div class="profile-actions" *ngIf="!isOwn && isAuthenticated">
+            <button class="btn-follow" [class.following]="stats.followedByCurrentUser" (click)="toggleFollow()">
+              {{ stats.followedByCurrentUser ? 'Abonné' : "S'abonner" }}
+            </button>
+            <button class="report-btn" (click)="openReport()">
+              ⚠️ Signaler
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Posts section -->
+    <div class="section-header">
+      <div>
+        <div class="section-title">Posts de {{ stats.username }}</div>
+        <div class="section-count">{{ posts.length }} post{{ posts.length > 1 ? 's' : '' }}</div>
+      </div>
+    </div>
+
+    <div class="posts-list">
+      <div *ngIf="posts.length === 0" class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">Aucun post</div>
+        <div class="empty-text">Cet utilisateur n'a encore rien publié.</div>
+      </div>
+
+      <article class="post-card" *ngFor="let post of posts">
+        <div class="post-header">
+          <div class="post-meta">
+            <div class="post-avatar" [class.own]="isOwnPost(post)">{{ getInitial(post.authorUsername) }}</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="post-author">{{ post.authorUsername }}</span>
+                <span class="own-badge" *ngIf="isOwnPost(post)">Moi</span>
+              </div>
+              <div class="post-date">{{ formatDate(post.createdAt) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-title" (click)="toggleExpand(post.id)">{{ post.title }}</div>
+
+        <div class="post-images"
+          *ngIf="post.imageUrls && post.imageUrls.length > 0"
+          [ngClass]="{'single': post.imageUrls.length === 1, 'double': post.imageUrls.length === 2, 'triple': post.imageUrls.length === 3}">
+          <img *ngFor="let url of post.imageUrls" [src]="getImageUrl(url)" [alt]="post.title" class="post-image" />
+        </div>
+
+        <div class="post-preview" *ngIf="!toggleExpanded[post.id]">{{ post.content }}</div>
+        <div class="post-full" *ngIf="toggleExpanded[post.id]">{{ post.content }}</div>
+
+        <div class="post-footer">
+          <span class="action-btn">❤️ {{ post.likeCount }}</span>
+          <span class="action-btn">💬 {{ post.commentCount }}</span>
+          <button class="read-more" (click)="toggleExpand(post.id)">
+            {{ toggleExpanded[post.id] ? '← Réduire' : 'Lire la suite →' }}
+          </button>
+        </div>
+      </article>
+    </div>
+  </ng-container>
+</main>
+
+<!-- Report Modal -->
+<div class="modal-overlay" *ngIf="showReport" (click)="closeReport()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-title">Signaler {{ stats?.username }}</div>
+    <div class="modal-text">Sélectionnez une raison</div>
+    <div class="report-reasons">
+      <div class="report-reason" *ngFor="let r of reportReasons"
+        [class.selected]="reportReason === r.value"
+        (click)="selectReason(r.value)">{{ r.label }}</div>
+    </div>
+    <textarea class="report-textarea" [(ngModel)]="reportDescription"
+      placeholder="Description (optionnel)" rows="3"></textarea>
+    <div class="alert alert-error" *ngIf="reportError">{{ reportError }}</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" (click)="closeReport()">Annuler</button>
+      <button class="btn btn-sm btn-delete" (click)="submitReport()" [disabled]="reportLoading">Signaler</button>
+    </div>
+  </div>
+</div>

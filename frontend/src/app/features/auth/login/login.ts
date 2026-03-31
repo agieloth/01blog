@@ -1,49 +1,47 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
 export class LoginComponent {
-  loginForm: FormGroup;
-  errorMessage = '';
+  // "identifier" = email OU username (backend accepte les deux)
+  identifier = '';
+  password = '';
+  error = '';
   loading = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router
-  ) {
-    this.loginForm = this.fb.group({
-      identifier: ['', [Validators.required]],
-      password: ['', [Validators.required]]
+  constructor(private authService: AuthService, private router: Router) {}
+
+  submit(): void {
+    if (!this.identifier.trim() || !this.password) {
+      this.error = 'Remplis tous les champs.';
+      return;
+    }
+    this.loading = true;
+    this.error = '';
+    this.authService.login({
+      identifier: this.identifier.trim(),
+      password: this.password
+    }).subscribe({
+      next: () => this.router.navigate(['/feed']),
+      error: (err) => {
+        this.loading = false;
+        this.error = err.status === 401
+          ? 'Identifiants incorrects.'
+          : (err.error?.message || 'Erreur de connexion.');
+      }
     });
   }
 
-  onSubmit(): void {
-    if (this.loginForm.invalid) {
-      this.errorMessage = 'Remplis tous les champs.';
-      return;
-    }
-
-    this.loading = true;
-    this.errorMessage = '';
-
-    this.authService.login(this.loginForm.value).subscribe({
-      next: () => {
-        this.router.navigate(['/feed']);
-      },
-      error: (error) => {
-        this.loading = false;
-        this.errorMessage = error.error?.message || 'Identifiants incorrects.';
-      }
-    });
+  onKey(e: KeyboardEvent): void {
+    if (e.key === 'Enter') this.submit();
   }
 }

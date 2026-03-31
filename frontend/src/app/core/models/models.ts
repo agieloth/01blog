@@ -1,61 +1,7 @@
-// ═══════════════════════════════════════════════════
-// MODELS - Interfaces TypeScript pour le backend
-// ═══════════════════════════════════════════════════
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  role: 'USER' | 'ADMIN';
-  isBanned?: boolean;
-  createdAt?: string;
-}
-
-export interface Post {
-  id: number;
-  title: string;
-  content: string;
-  imageUrls: string[];
-  authorId: number;              // ← Changé
-  authorUsername: string;
-  likeCount: number;
-  commentCount: number;
-  likedByCurrentUser: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Comment {
-  id: number;
-  content: string;
-  user: User;
-  postId: number;
-  createdAt: string;
-}
-
-export interface Notification {
-  id: number;
-  type: 'LIKE' | 'COMMENT' | 'FOLLOW';
-  message: string;
-  read: boolean;
-  createdAt: string;
-  relatedUserId?: number;
-  relatedPostId?: number;
-}
-
-export interface Report {
-  id: number;
-  reporter: User;
-  reportedUser: User;
-  reason: 'SPAM' | 'HARASSMENT' | 'INAPPROPRIATE_CONTENT' | 'HATE_SPEECH' | 'OTHER';
-  description?: string;
-  status: 'PENDING' | 'REVIEWED' | 'DISMISSED';
-  createdAt: string;
-}
-
-// DTOs pour les requêtes
 export interface LoginRequest {
-  identifier: string;
+  identifier: string;  // email OU username (backend)
   password: string;
 }
 
@@ -67,10 +13,36 @@ export interface RegisterRequest {
 
 export interface AuthResponse {
   token: string;
+  type: string;
   id: number;
   username: string;
   email: string;
-  role: string;
+  role: 'USER' | 'ADMIN';  // backend retourne un string enum, pas un tableau
+}
+
+// ── USER ──────────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: 'USER' | 'ADMIN';
+}
+
+// ── POST ──────────────────────────────────────────────────────────────────────
+
+export interface Post {
+  id: number;
+  title: string;
+  content: string;
+  authorId: number;
+  authorUsername: string;
+  imageUrls: string[];
+  likeCount: number;
+  likedByCurrentUser: boolean;
+  commentCount: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreatePostRequest {
@@ -78,21 +50,28 @@ export interface CreatePostRequest {
   content: string;
 }
 
+// ── COMMENT ───────────────────────────────────────────────────────────────────
+
+export interface Comment {
+  id: number;
+  content: string;
+  authorId: number;
+  authorUsername: string;
+  postId: number;
+  createdAt: string;
+}
+
 export interface CreateCommentRequest {
   content: string;
 }
 
-export interface CreateReportRequest {
-  reason: string;
-  description?: string;
-}
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
 
-// Admin DTOs
 export interface AdminUser {
   id: number;
   username: string;
   email: string;
-  roles: string[];
+  roles: string[];      // backend retourne ["USER"] ou ["ADMIN"]
   postCount: number;
   reportCount: number;
   banned: boolean;
@@ -114,7 +93,7 @@ export interface AdminReport {
   reporterUsername: string;
   reportedUsername: string;
   reason: string;
-  description?: string;
+  description: string;
   status: string;
   createdAt: string;
 }

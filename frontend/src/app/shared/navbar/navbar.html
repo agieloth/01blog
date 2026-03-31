@@ -2,16 +2,52 @@
   <div class="navbar-brand" routerLink="/feed">
     Student<span>Hub</span>
   </div>
-  
+
   <div class="navbar-right">
-    <button 
-      *ngIf="isAdmin()" 
-      class="btn btn-ghost btn-sm"
-      routerLink="/admin"
-    >
+    <span class="ws-dot" [class.connected]="wsConnected" title="Temps réel"></span>
+
+    <button class="btn btn-ghost btn-sm" *ngIf="isAdmin()" routerLink="/admin">
       🛡️ Admin
     </button>
-    
+
+    <!-- Notifications -->
+    <div class="notif-wrapper" *ngIf="currentUser">
+      <button class="notif-bell" (click)="toggleNotif()">
+        🔔
+        <span class="notif-badge" *ngIf="unreadCount > 0">
+          {{ unreadCount > 99 ? '99+' : unreadCount }}
+        </span>
+      </button>
+
+      <div class="notif-dropdown" *ngIf="notifOpen">
+        <div class="notif-header">
+          <div class="notif-title">Notifications</div>
+          <button class="notif-mark-all" (click)="markAllRead()">Tout marquer comme lu</button>
+        </div>
+        <div class="notif-list">
+          <div *ngIf="notifications.length === 0" class="notif-empty">
+            <div class="notif-empty-icon">🔔</div>
+            <div>Aucune notification</div>
+          </div>
+          <div
+            *ngFor="let n of notifications"
+            class="notif-item"
+            [class.unread]="!n.read"
+            (click)="clickNotif(n)"
+          >
+            <div class="notif-icon" [ngClass]="getNotifClass(n.type)">
+              {{ getNotifIcon(n.type) }}
+            </div>
+            <div class="notif-content">
+              <div class="notif-message">{{ n.message }}</div>
+              <div class="notif-time">{{ formatDate(n.createdAt) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User -->
     <div class="navbar-user" *ngIf="currentUser">
       <div class="navbar-avatar" (click)="goToProfile()">
         {{ getInitial(currentUser.username) }}
@@ -20,9 +56,7 @@
         {{ currentUser.username }}
       </span>
     </div>
-    
-    <button class="btn btn-ghost btn-sm" (click)="logout()">
-      Déconnexion
-    </button>
+
+    <button class="btn btn-ghost btn-sm" (click)="logout()">Déconnexion</button>
   </div>
 </nav>

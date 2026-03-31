@@ -1,53 +1,50 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })
 export class RegisterComponent {
-  registerForm: FormGroup;
-  errorMessage = '';
+  username = '';
+  email = '';
+  password = '';
+  confirmPassword = '';
+  error = '';
   loading = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router
-  ) {
-    this.registerForm = this.fb.group({
-      username: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
-  }
+  constructor(private authService: AuthService, private router: Router) {}
 
-  onSubmit(): void {
-    if (this.registerForm.invalid) {
-      this.errorMessage = 'Remplis tous les champs correctement.';
+  submit(): void {
+    if (!this.username.trim() || !this.email.trim() || !this.password) {
+      this.error = 'Remplis tous les champs.';
       return;
     }
-
+    if (this.password !== this.confirmPassword) {
+      this.error = 'Les mots de passe ne correspondent pas.';
+      return;
+    }
+    if (this.password.length < 6) {
+      this.error = 'Le mot de passe doit faire au moins 6 caractères.';
+      return;
+    }
     this.loading = true;
-    this.errorMessage = '';
-
-    this.authService.register(this.registerForm.value).subscribe({
-      next: () => {
-        this.router.navigate(['/feed']);
-      },
-      error: (error) => {
+    this.error = '';
+    this.authService.register({
+      username: this.username.trim(),
+      email: this.email.trim(),
+      password: this.password
+    }).subscribe({
+      next: () => this.router.navigate(['/feed']),
+      error: (err) => {
         this.loading = false;
-        if (error.error?.errors) {
-          this.errorMessage = Object.values(error.error.errors).join(' · ');
-        } else {
-          this.errorMessage = error.error?.message || 'Erreur lors de l\'inscription.';
-        }
+        this.error = err.error?.message || 'Erreur lors de l\'inscription.';
       }
     });
   }

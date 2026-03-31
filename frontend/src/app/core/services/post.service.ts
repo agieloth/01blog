@@ -2,19 +2,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Post, CreatePostRequest, Comment, CreateCommentRequest } from '../models/models';
+import { Post, Comment, CreateCommentRequest } from '../models/models';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class PostService {
   private apiUrl = `${environment.apiUrl}/posts`;
 
   constructor(private http: HttpClient) {}
 
-  // ═══════════════════════════════════════════════════
-  // POSTS
-  // ═══════════════════════════════════════════════════
+  // ── POSTS ─────────────────────────────────────────
 
   getAllPosts(): Observable<Post[]> {
     return this.http.get<Post[]>(this.apiUrl);
@@ -24,36 +20,30 @@ export class PostService {
     return this.http.get<Post>(`${this.apiUrl}/${id}`);
   }
 
-  getPostsByUser(userId: number): Observable<Post[]> {
-    return this.http.get<Post[]>(`${this.apiUrl}/user/${userId}`);
+  createPostForm(formData: FormData): Observable<Post> {
+    return this.http.post<Post>(this.apiUrl, formData);
   }
 
-  createPost(data: CreatePostRequest): Observable<Post> {
-    return this.http.post<Post>(this.apiUrl, data);
-  }
-
-  updatePost(id: number, data: CreatePostRequest): Observable<Post> {
-    return this.http.put<Post>(`${this.apiUrl}/${id}`, data);
+  updatePostForm(id: number, formData: FormData): Observable<Post> {
+    return this.http.put<Post>(`${this.apiUrl}/${id}`, formData);
   }
 
   deletePost(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
-  // ═══════════════════════════════════════════════════
-  // LIKES
-  // ═══════════════════════════════════════════════════
+  // ── LIKES ─────────────────────────────────────────
 
-  toggleLike(postId: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${postId}/like`, {});
+  toggleLike(postId: number): Observable<{ postId: number; likeCount: number; likedByCurrentUser: boolean }> {
+    return this.http.post<{ postId: number; likeCount: number; likedByCurrentUser: boolean }>(
+      `${this.apiUrl}/${postId}/like`, {}
+    );
   }
 
-  // ═══════════════════════════════════════════════════
-  // COMMENTS
-  // ═══════════════════════════════════════════════════
+  // ── COMMENTS ──────────────────────────────────────
 
-  getComments(postId: number): Observable<Comment[]> {
-    return this.http.get<Comment[]>(`${this.apiUrl}/${postId}/comments`);
+  getComments(postId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${postId}/comments`);
   }
 
   addComment(postId: number, data: CreateCommentRequest): Observable<Comment> {
@@ -62,15 +52,5 @@ export class PostService {
 
   deleteComment(postId: number, commentId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${postId}/comments/${commentId}`);
-  }
-
-  // ═══════════════════════════════════════════════════
-  // IMAGES UPLOAD
-  // ═══════════════════════════════════════════════════
-
-  uploadImages(postId: number, files: File[]): Observable<any> {
-    const formData = new FormData();
-    files.forEach(file => formData.append('images', file));
-    return this.http.post(`${this.apiUrl}/${postId}/images`, formData);
   }
 }
