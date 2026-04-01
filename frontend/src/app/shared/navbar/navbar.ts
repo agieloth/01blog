@@ -30,6 +30,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    // Lire l'état courant immédiatement (BehaviorSubject replay la dernière valeur)
+    this.wsConnected = this.wsService.isConnected;
+
     this.subs.push(
       this.authService.currentUser$.subscribe(user => {
         this.currentUser = user;

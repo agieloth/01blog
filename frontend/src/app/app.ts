@@ -13,14 +13,21 @@ export class AppComponent implements OnInit {
   constructor(private authService: AuthService, private wsService: WebSocketService) {}
 
   ngOnInit(): void {
+    // Connexion initiale si déjà authentifié (ex: rechargement page)
     const user = this.authService.getCurrentUser();
     if (user) {
       this.wsService.connect(user.id);
     }
-    this.authService.currentUser$.subscribe(user => {
-      if (user && !this.wsService.isConnected) {
-        this.wsService.connect(user.id);
-      } else if (!user) {
+
+    // Réagir aux changements d'auth :
+    // - login  → connecter
+    // - logout → déconnecter (disconnect() coupe la reconnexion auto aussi)
+    this.authService.currentUser$.subscribe(u => {
+      if (u) {
+        // Connecter seulement si pas encore connecté
+        this.wsService.connect(u.id);
+      } else {
+        // Logout explicite → couper proprement
         this.wsService.disconnect();
       }
     });
