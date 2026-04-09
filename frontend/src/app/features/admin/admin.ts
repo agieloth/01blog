@@ -28,9 +28,12 @@ export class AdminComponent implements OnInit {
 
   switchTab(tab: AdminTab): void {
     this.activeTab = tab;
-    if (tab === 'users' && this.users.length === 0) this.loadUsers();
-    if (tab === 'posts' && this.posts.length === 0) this.loadPosts();
-    if (tab === 'reports' && this.reports.length === 0) this.loadReports();
+    // FIX : toujours recharger les données lors du changement d'onglet
+    // pour éviter d'afficher des données obsolètes (ban effectué dans un autre
+    // onglet, post supprimé entre-temps, etc.)
+    if (tab === 'users') this.loadUsers();
+    if (tab === 'posts') this.loadPosts();
+    if (tab === 'reports') this.loadReports();
   }
 
   loadUsers(): void {

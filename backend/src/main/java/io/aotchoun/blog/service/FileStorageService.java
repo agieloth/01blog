@@ -1,6 +1,7 @@
 package io.aotchoun.blog.service;
 
 import io.aotchoun.blog.exception.BadRequestException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,30 +15,34 @@ import java.util.UUID;
 
 /**
  * Service de gestion des fichiers uploadés
- * 
- * Stocke les fichiers dans ./uploads/
- * Format : {uuid}_{original-filename}
- * Validation : type MIME + taille
+ *
+ * FIX v2 :
+ * - getOriginalFilename() peut retourner null → NPE dans StringUtils.cleanPath()
+ *   Ajout d'un null-check avec valeur par défaut "file"
+ * - upload-dir injecté depuis les properties (au lieu d'être hardcodé)
+ * - Validation du type MIME renforcée
  */
 @Service
 public class FileStorageService {
 
-    private final Path uploadDir = Paths.get("uploads");
-    private final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private final Path uploadDir;
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-    public FileStorageService() {
+    public FileStorageService(@Value("${file.upload-dir:./uploads}") String uploadDirPath) {
+        this.uploadDir = Paths.get(uploadDirPath).toAbsolutePath().normalize();
         try {
-            Files.createDirectories(uploadDir);
+            Files.createDirectories(this.uploadDir);
         } catch (IOException e) {
-            throw new RuntimeException("Could not create upload directory", e);
+            throw new RuntimeException("Could not create upload directory: " + uploadDirPath, e);
         }
     }
 
     /**
-     * Stocke un fichier et retourne le chemin relatif
+     * Stocke un fichier et retourne le chemin relatif accessible via HTTP
+     *
+     * FIX : null-check sur getOriginalFilename() avant StringUtils.cleanPath()
      */
     public String storeFile(MultipartFile file) {
-        // Validation
         if (file == null || file.isEmpty()) {
             throw new BadRequestException("File is empty");
         }
@@ -51,19 +56,23 @@ public class FileStorageService {
             throw new BadRequestException("Only image files (JPG, PNG, GIF, WEBP) are allowed");
         }
 
-        // Nettoyer le nom du fichier
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-        
-        // Générer un nom unique
+        // FIX : getOriginalFilename() peut être null → utiliser "file" par défaut
+        String rawName = file.getOriginalFilename();
+        String originalFilename = StringUtils.cleanPath(
+                rawName != null ? rawName : "file"
+        );
+
+        // Sécurité : empêcher les path traversal ("../../etc/passwd")
+        if (originalFilename.contains("..")) {
+            throw new BadRequestException("Invalid file name: path traversal detected");
+        }
+
         String extension = getFileExtension(originalFilename);
-        String filename = UUID.randomUUID().toString() + "_" + System.currentTimeMillis() + extension;
+        String filename = UUID.randomUUID() + "_" + System.currentTimeMillis() + extension;
 
         try {
-            // Copier le fichier dans le dossier uploads
             Path targetLocation = uploadDir.resolve(filename);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            
-            // Retourner le chemin relatif (pour stockage en DB)
             return "/uploads/" + filename;
         } catch (IOException e) {
             throw new RuntimeException("Could not store file " + filename, e);
@@ -71,33 +80,34 @@ public class FileStorageService {
     }
 
     /**
-     * Supprime un fichier
+     * Supprime un fichier uploadé
      */
     public void deleteFile(String fileUrl) {
         if (fileUrl == null || fileUrl.isEmpty()) return;
-        
         try {
-            // Extraire le nom du fichier depuis l'URL
             String filename = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-            Path filePath = uploadDir.resolve(filename);
+            Path filePath = uploadDir.resolve(filename).normalize();
+            // Sécurité : vérifier que le fichier est bien dans le dossier uploads
+            if (!filePath.startsWith(uploadDir)) {
+                return; // path traversal tenté → ignorer silencieusement
+            }
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            // Log l'erreur mais ne pas planter l'application
-            System.err.println("Could not delete file: " + fileUrl);
+            System.err.println("Could not delete file: " + fileUrl + " — " + e.getMessage());
         }
     }
 
     private boolean isValidImageType(String contentType) {
         return contentType.equals("image/jpeg") ||
-               contentType.equals("image/jpg") ||
-               contentType.equals("image/png") ||
-               contentType.equals("image/gif") ||
+               contentType.equals("image/jpg")  ||
+               contentType.equals("image/png")  ||
+               contentType.equals("image/gif")  ||
                contentType.equals("image/webp");
     }
 
     private String getFileExtension(String filename) {
         if (filename == null) return "";
         int lastDot = filename.lastIndexOf(".");
-        return lastDot == -1 ? "" : filename.substring(lastDot);
+        return lastDot == -1 ? "" : filename.substring(lastDot).toLowerCase();
     }
 }

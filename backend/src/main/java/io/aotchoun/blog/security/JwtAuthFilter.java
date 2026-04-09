@@ -1,12 +1,19 @@
 package io.aotchoun.blog.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -14,20 +21,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * Filtre JWT - Intercepte chaque requête HTTP
+ * Filtre JWT — intercepte chaque requête HTTP
  *
- * OncePerRequestFilter garantit que ce filtre s'exécute
- * exactement une fois par requête (même si Spring le détecte plusieurs fois).
- *
- * FLOW pour chaque requête :
- * 1. Lit le header "Authorization"
- * 2. Extrait le token JWT (après "Bearer ")
- * 3. Valide le token
- * 4. Charge l'utilisateur depuis la DB
- * 5. Définit l'authentification dans le SecurityContext
- *
- * Si une étape échoue → la requête continue sans authentification
- * → Spring Security bloquera les routes protégées (401)
+ * FIX v2 :
+ * - Gère ExpiredJwtException → 401 avec message clair
+ * - Gère MalformedJwtException / SignatureException → 401
+ * - Gère DisabledException (utilisateur banni) → 403
+ * - Remplace les catch(Exception) silencieux par des réponses HTTP explicites
  */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -47,51 +47,78 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 1. Lire le header Authorization
-        // Format attendu : "Bearer eyJhbGciOiJIUzI1NiJ9..."
         final String authHeader = request.getHeader("Authorization");
 
-        // 2. Si pas de header ou pas le bon format → passer au filtre suivant
+        // Pas de header Authorization → continuer sans authentification
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Extraire le token (enlever "Bearer ")
         final String token = authHeader.substring(7);
 
-        // 4. Extraire le username du token
-        final String username = jwtUtil.extractUsername(token);
+        try {
+            final String username = jwtUtil.extractUsername(token);
 
-        // 5. Si username trouvé ET pas encore authentifié dans ce contexte
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-            // 6. Charger l'utilisateur depuis la DB
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                // FIX : vérifier que le compte est actif (non banni)
+                if (!userDetails.isEnabled()) {
+                    sendError(response, HttpStatus.FORBIDDEN, "Account is banned");
+                    return;
+                }
 
-            // 7. Valider le token
-            if (jwtUtil.validateToken(token, userDetails.getUsername())) {
-
-                // 8. Créer l'objet d'authentification Spring Security
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,                        // pas besoin des credentials
-                                userDetails.getAuthorities() // les rôles (ROLE_USER, ROLE_ADMIN)
-                        );
-
-                // 9. Ajouter les détails de la requête (IP, session, etc.)
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-
-                // 10. Enregistrer l'authentification dans le contexte de sécurité
-                // Après ça, Spring Security sait que l'utilisateur est authentifié
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (jwtUtil.validateToken(token, userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+
+        } catch (ExpiredJwtException e) {
+            // FIX : token expiré → 401 explicite (pas 500)
+            sendError(response, HttpStatus.UNAUTHORIZED, "Token expired");
+            return;
+        } catch (MalformedJwtException | SignatureException | UnsupportedJwtException e) {
+            // FIX : token invalide / signature incorrecte → 401
+            sendError(response, HttpStatus.UNAUTHORIZED, "Invalid token");
+            return;
+        } catch (DisabledException e) {
+            // FIX : compte désactivé (banni) → 403
+            sendError(response, HttpStatus.FORBIDDEN, "Account is banned");
+            return;
+        } catch (UsernameNotFoundException e) {
+            // Utilisateur supprimé mais token encore valide → 401
+            sendError(response, HttpStatus.UNAUTHORIZED, "User not found");
+            return;
+        } catch (Exception e) {
+            // Toute autre erreur → 401 générique (ne pas exposer les détails)
+            sendError(response, HttpStatus.UNAUTHORIZED, "Authentication failed");
+            return;
         }
 
-        // 11. Continuer la chaîne de filtres
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Envoie une réponse d'erreur JSON structurée
+     */
+    private void sendError(HttpServletResponse response, HttpStatus status, String message)
+            throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(
+                String.format("{\"status\":%d,\"error\":\"%s\",\"message\":\"%s\"}",
+                        status.value(), status.getReasonPhrase(), message)
+        );
     }
 }

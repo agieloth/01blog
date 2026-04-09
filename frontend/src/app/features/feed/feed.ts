@@ -51,6 +51,8 @@ export class FeedComponent implements OnInit, OnDestroy {
   comments: { [id: number]: CommentItem[] } = {};
   commentInputs: { [id: number]: string } = {};
   commentsLoading: { [id: number]: boolean } = {};
+  // FIX : tracker les posts déjà abonnés en WS pour éviter les doublons
+  private commentWsSubs: Set<number> = new Set();
 
   // Report
   reportUserId: number | null = null;
@@ -114,6 +116,8 @@ export class FeedComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subs.forEach(s => s.unsubscribe());
+    // FIX : réinitialiser le set des abonnements WS
+    this.commentWsSubs.clear();
   }
 
   loadPosts(): void {
@@ -260,13 +264,21 @@ export class FeedComponent implements OnInit, OnDestroy {
   // ── COMMENTS ──────────────────────────────────────────────────────────────
   toggleComments(postId: number): void {
     this.openComments[postId] = !this.openComments[postId];
-    if (this.openComments[postId] && !this.comments[postId]) {
-      this.loadComments(postId);
-      this.wsService.subscribeToComments(postId).subscribe(event => {
-        if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
-          this.loadComments(postId);
-        }
-      });
+    if (this.openComments[postId]) {
+      // Charger les commentaires si pas encore chargés
+      if (!this.comments[postId]) {
+        this.loadComments(postId);
+      }
+      // FIX : s'abonner au WS seulement si pas déjà abonné pour ce post
+      if (!this.commentWsSubs.has(postId)) {
+        this.commentWsSubs.add(postId);
+        const sub = this.wsService.subscribeToComments(postId).subscribe(event => {
+          if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
+            this.loadComments(postId);
+          }
+        });
+        this.subs.push(sub); // géré par ngOnDestroy pour cleanup
+      }
     }
   }
 
@@ -340,6 +352,11 @@ export class FeedComponent implements OnInit, OnDestroy {
 
   isOwn(post: Post): boolean {
     return this.currentUser?.id === post.authorId;
+  }
+
+  canEdit(post: Post): boolean {
+    // FIX : seulement si l'utilisateur est authentifié et propriétaire du post
+    return this.authService.isAuthenticated() && this.isOwn(post);
   }
 
   goToProfile(userId: number): void {

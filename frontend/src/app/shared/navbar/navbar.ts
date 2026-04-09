@@ -56,6 +56,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   loadNotifications(): void {
+    // FIX : ne pas appeler l'API si l'utilisateur n'est pas connecté
+    // (évite une erreur 401 au chargement du composant pour les visiteurs)
+    if (!this.authService.isAuthenticated()) return;
+
     this.notifService.getNotifications().subscribe({
       next: notifs => {
         this.notifications = notifs;

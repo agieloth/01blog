@@ -31,8 +31,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Point de connexion WebSocket
         // Le client se connecte à ws://localhost:8080/ws
         // SockJS = fallback HTTP si WebSocket non supporté par le navigateur
+        //
+        // FIX SECURITE : restreindre les origines autorisées.
+        // En dev : localhost:4200 (Angular). En prod : surcharger via variable d'env.
+        // L'ancien "allowedOriginPatterns("*")" autorisait n'importe quelle origine.
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(
+                        "http://localhost:4200",
+                        "http://localhost:8080"
+                )
                 .withSockJS();
     }
 

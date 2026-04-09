@@ -1,5 +1,6 @@
 package io.aotchoun.blog.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.aotchoun.blog.dto.request.PostRequest;
 import io.aotchoun.blog.dto.response.PostResponse;
@@ -31,7 +32,7 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final FileStorageService fileStorageService;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper; // FIX : injecté par Spring (bean configuré)
 
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
@@ -40,14 +41,19 @@ public class PostService {
                        SimpMessagingTemplate messagingTemplate,
                        FileStorageService fileStorageService,
                        ObjectMapper objectMapper) {
-        this.postRepository = postRepository;
-        this.userRepository = userRepository;
-        this.likeRepository = likeRepository;
+        this.postRepository    = postRepository;
+        this.userRepository    = userRepository;
+        this.likeRepository    = likeRepository;
         this.commentRepository = commentRepository;
         this.messagingTemplate = messagingTemplate;
         this.fileStorageService = fileStorageService;
-        this.objectMapper = objectMapper;
+        this.objectMapper      = objectMapper;
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Méthode privée : enrichit un Post avec ses compteurs
+    // FIX : utilise objectMapper injecté pour parser les imageUrls
+    // ──────────────────────────────────────────────────────────────────
 
     private PostResponse enrich(Post post, String username) {
         long likes    = likeRepository.countByPostId(post.getId());
@@ -59,8 +65,26 @@ public class PostService {
                 liked = likeRepository.existsByUserIdAndPostId(user.get().getId(), post.getId());
             }
         }
-        return PostResponse.from(post, likes, comments, liked);
+        List<String> imageUrls = parseImageUrls(post.getImageUrls());
+        return PostResponse.from(post, imageUrls, likes, comments, liked);
     }
+
+    /**
+     * Parse le JSON des imageUrls stocké en base.
+     * FIX : utilise l'ObjectMapper injecté (thread-safe, config Spring appliquée).
+     */
+    private List<String> parseImageUrls(String json) {
+        if (json == null || json.isEmpty()) return new ArrayList<>();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // READ
+    // ──────────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List<PostResponse> getAllPosts(String username) {
@@ -88,121 +112,124 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Créer un post avec image optionnelle
-     */
+    // ──────────────────────────────────────────────────────────────────
+    // CREATE
+    // ──────────────────────────────────────────────────────────────────
+
     public PostResponse createPost(PostRequest request, MultipartFile[] images, String username) {
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        
+
         Post post = new Post(request.getTitle(), request.getContent(), author);
-        
-        // Upload des images (max 3)
+
         if (images != null && images.length > 0) {
             if (images.length > 3) {
                 throw new BadRequestException("Maximum 3 images allowed per post");
             }
-            List<String> imageUrls = new ArrayList<>();
-            for (MultipartFile image : images) {
-                if (!image.isEmpty()) {
-                    String url = fileStorageService.storeFile(image);
-                    imageUrls.add(url);
-                }
-            }
-            try {
-                post.setImageUrls(objectMapper.writeValueAsString(imageUrls));
-            } catch (Exception e) {
-                throw new RuntimeException("Error serializing image URLs", e);
-            }
+            List<String> imageUrls = uploadImages(images);
+            serializeImageUrls(post, imageUrls);
         }
-        
-        post = postRepository.save(post);
-        PostResponse response = enrich(post, username);
 
-        messagingTemplate.convertAndSend("/topic/posts", 
-            new WsEvent("POST_CREATED", response));
-        return response;
-    }
-
-    /**
-     * Modifier un post avec possibilité de changer l'image
-     */
-    public PostResponse updatePost(Long id, PostRequest request, MultipartFile[] images, String username) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
-        
-        if (!post.getAuthor().getUsername().equals(username)) {
-            throw new UnauthorizedException("You can only edit your own posts");
-        }
-        
-        post.setTitle(request.getTitle());
-        post.setContent(request.getContent());
-        
-        // Si de nouvelles images sont uploadées
-        if (images != null && images.length > 0) {
-            if (images.length > 3) {
-                throw new BadRequestException("Maximum 3 images allowed per post");
-            }
-            
-            // Supprimer les anciennes images
-            deletePostImages(post);
-            
-            // Upload des nouvelles
-            List<String> imageUrls = new ArrayList<>();
-            for (MultipartFile image : images) {
-                if (!image.isEmpty()) {
-                    String url = fileStorageService.storeFile(image);
-                    imageUrls.add(url);
-                }
-            }
-            try {
-                post.setImageUrls(objectMapper.writeValueAsString(imageUrls));
-            } catch (Exception e) {
-                throw new RuntimeException("Error serializing image URLs", e);
-            }
-        }
-        
         post = postRepository.save(post);
         PostResponse response = enrich(post, username);
 
         messagingTemplate.convertAndSend("/topic/posts",
-            new WsEvent("POST_UPDATED", response));
+                new WsEvent("POST_CREATED", response));
         return response;
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // UPDATE
+    // ──────────────────────────────────────────────────────────────────
+
+    public PostResponse updatePost(Long id, PostRequest request, MultipartFile[] images, String username) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+
+        if (!post.getAuthor().getUsername().equals(username)) {
+            throw new UnauthorizedException("You can only edit your own posts");
+        }
+
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+
+        if (images != null && images.length > 0) {
+            if (images.length > 3) {
+                throw new BadRequestException("Maximum 3 images allowed per post");
+            }
+            deletePostImages(post);
+            List<String> imageUrls = uploadImages(images);
+            serializeImageUrls(post, imageUrls);
+        }
+
+        post = postRepository.save(post);
+        PostResponse response = enrich(post, username);
+
+        messagingTemplate.convertAndSend("/topic/posts",
+                new WsEvent("POST_UPDATED", response));
+        return response;
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // DELETE
+    // ──────────────────────────────────────────────────────────────────
 
     public void deletePost(Long id, String username) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
-        
+
         if (!post.getAuthor().getUsername().equals(username)) {
             throw new UnauthorizedException("You can only delete your own posts");
         }
-        
-        // Supprimer toutes les images associées
+
         deletePostImages(post);
-        
         postRepository.deleteById(id);
- 
+
         messagingTemplate.convertAndSend("/topic/posts",
-            new WsEvent("POST_DELETED", id));
+                new WsEvent("POST_DELETED", id));
     }
- 
-    private void deletePostImages(Post post) {
-        if (post.getImageUrls() == null || post.getImageUrls().isEmpty()) return;
-        try {
-            List<String> urls = objectMapper.readValue(post.getImageUrls(), List.class);
-            for (String url : urls) {
-                fileStorageService.deleteFile(url);
+
+    // ──────────────────────────────────────────────────────────────────
+    // Helpers privés
+    // ──────────────────────────────────────────────────────────────────
+
+    private List<String> uploadImages(MultipartFile[] images) {
+        List<String> urls = new ArrayList<>();
+        for (MultipartFile image : images) {
+            if (!image.isEmpty()) {
+                urls.add(fileStorageService.storeFile(image));
             }
+        }
+        return urls;
+    }
+
+    private void serializeImageUrls(Post post, List<String> imageUrls) {
+        try {
+            post.setImageUrls(objectMapper.writeValueAsString(imageUrls));
         } catch (Exception e) {
-            System.err.println("Error deleting post images: " + e.getMessage());
+            throw new RuntimeException("Error serializing image URLs", e);
         }
     }
 
+    private void deletePostImages(Post post) {
+        if (post.getImageUrls() == null || post.getImageUrls().isEmpty()) return;
+        List<String> urls = parseImageUrls(post.getImageUrls());
+        urls.forEach(fileStorageService::deleteFile);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // WebSocket event wrapper
+    // ──────────────────────────────────────────────────────────────────
+
     public static class WsEvent {
-        private String type;
-        private Object data;
-        public WsEvent(String type, Object data) { this.type = type; this.data = data; }
+        private final String type;
+        private final Object data;
+
+        public WsEvent(String type, Object data) {
+            this.type = type;
+            this.data = data;
+        }
+
         public String getType() { return type; }
         public Object getData() { return data; }
     }

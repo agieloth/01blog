@@ -2,19 +2,19 @@ package io.aotchoun.blog.dto.response;
 
 import io.aotchoun.blog.entity.Post;
 import java.time.LocalDateTime;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * DTO pour la réponse d'un post
  *
- * On n'expose jamais l'entité Post directement — on contrôle
- * exactement ce que l'API retourne au client.
+ * FIX v2 : ObjectMapper statique retiré de cette classe.
+ * Un ObjectMapper statique dans un DTO n'est pas thread-safe et contourne
+ * l'injection Spring (configuration Jackson personnalisée ignorée).
  *
- * Par exemple, on inclut "authorUsername" mais pas l'objet User complet
- * (qui contient le mot de passe hashé).
+ * La désérialisation des imageUrls est maintenant déléguée à PostService
+ * qui injecte l'ObjectMapper Spring via son constructeur.
+ * PostResponse.from(post) ne traite plus le JSON des images directement.
  */
 public class PostResponse {
 
@@ -30,72 +30,61 @@ public class PostResponse {
     private long commentCount;
     private boolean likedByCurrentUser;
 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
     public PostResponse() {}
 
     /**
-     * Construit un PostResponse depuis une entité Post
-     *
-     * C'est le pattern "factory method" : plutôt qu'un constructeur compliqué,
-     * on a une méthode statique claire qui fait la conversion.
-     *
-     * Utilisation : PostResponse.from(post)
+     * Factory method de base — imageUrls doit être fourni déjà parsé.
+     * Utiliser PostResponse.from(post, imageUrls) depuis PostService.
      */
-    public static PostResponse from(Post post) {
+    public static PostResponse from(Post post, List<String> imageUrls) {
         PostResponse r = new PostResponse();
-        r.id = post.getId();
-        r.title = post.getTitle();
-        r.content = post.getContent();
-        r.imageUrls = parseImageUrls(post.getImageUrls());
-        r.authorId = post.getAuthor().getId();
+        r.id            = post.getId();
+        r.title         = post.getTitle();
+        r.content       = post.getContent();
+        r.imageUrls     = imageUrls != null ? imageUrls : new ArrayList<>();
+        r.authorId      = post.getAuthor().getId();
         r.authorUsername = post.getAuthor().getUsername();
-        r.createdAt = post.getCreatedAt();
-        r.updatedAt = post.getUpdatedAt();
+        r.createdAt     = post.getCreatedAt();
+        r.updatedAt     = post.getUpdatedAt();
         return r;
     }
 
-    // Surcharge avec compteurs — utilisée dans PostService
-    public static PostResponse from(Post post, long likeCount, long commentCount, boolean likedByCurrentUser) {
-        PostResponse r = from(post);
-        r.likeCount = likeCount;
-        r.commentCount = commentCount;
+    /**
+     * Factory method avec compteurs — utilisée dans PostService
+     */
+    public static PostResponse from(Post post, List<String> imageUrls,
+                                    long likeCount, long commentCount,
+                                    boolean likedByCurrentUser) {
+        PostResponse r = from(post, imageUrls);
+        r.likeCount          = likeCount;
+        r.commentCount       = commentCount;
         r.likedByCurrentUser = likedByCurrentUser;
         return r;
     }
 
-    private static List<String> parseImageUrls(String json) {
-        if (json == null || json.isEmpty()) return new ArrayList<>();
-        try {
-            return mapper.readValue(json, new TypeReference<List<String>>() {});
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
-    }
-
     // Getters
-    public Long getId() { return id; }
-    public String getTitle() { return title; }
-    public String getContent() { return content; }
-    public List<String> getImageUrls() { return imageUrls; }
-    public Long getAuthorId() { return authorId; }
-    public String getAuthorUsername() { return authorUsername; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public long getLikeCount() { return likeCount; }
-    public long getCommentCount() { return commentCount; }
-    public boolean isLikedByCurrentUser() { return likedByCurrentUser; }
+    public Long getId()                     { return id; }
+    public String getTitle()                { return title; }
+    public String getContent()              { return content; }
+    public List<String> getImageUrls()      { return imageUrls; }
+    public Long getAuthorId()               { return authorId; }
+    public String getAuthorUsername()       { return authorUsername; }
+    public LocalDateTime getCreatedAt()     { return createdAt; }
+    public LocalDateTime getUpdatedAt()     { return updatedAt; }
+    public long getLikeCount()              { return likeCount; }
+    public long getCommentCount()           { return commentCount; }
+    public boolean isLikedByCurrentUser()   { return likedByCurrentUser; }
 
     // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setTitle(String title) { this.title = title; }
-    public void setContent(String content) { this.content = content; }
-    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
-    public void setAuthorId(Long authorId) { this.authorId = authorId; }
-    public void setAuthorUsername(String authorUsername) { this.authorUsername = authorUsername; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public void setLikeCount(long likeCount) { this.likeCount = likeCount; }
-    public void setCommentCount(long commentCount) { this.commentCount = commentCount; }
-    public void setLikedByCurrentUser(boolean likedByCurrentUser) { this.likedByCurrentUser = likedByCurrentUser; }
+    public void setId(Long id)                              { this.id = id; }
+    public void setTitle(String title)                      { this.title = title; }
+    public void setContent(String content)                  { this.content = content; }
+    public void setImageUrls(List<String> imageUrls)        { this.imageUrls = imageUrls; }
+    public void setAuthorId(Long authorId)                  { this.authorId = authorId; }
+    public void setAuthorUsername(String authorUsername)    { this.authorUsername = authorUsername; }
+    public void setCreatedAt(LocalDateTime createdAt)       { this.createdAt = createdAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt)       { this.updatedAt = updatedAt; }
+    public void setLikeCount(long likeCount)                { this.likeCount = likeCount; }
+    public void setCommentCount(long commentCount)          { this.commentCount = commentCount; }
+    public void setLikedByCurrentUser(boolean v)            { this.likedByCurrentUser = v; }
 }

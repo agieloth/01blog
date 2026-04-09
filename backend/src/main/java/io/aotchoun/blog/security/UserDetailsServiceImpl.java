@@ -13,14 +13,8 @@ import java.util.List;
 /**
  * Implémentation de UserDetailsService pour Spring Security
  *
- * Spring Security ne sait pas comment charger un utilisateur depuis
- * notre base de données. Cette classe lui explique comment faire.
- *
- * ANALOGIE :
- * Spring Security est un vigile qui veut vérifier une carte d'identité.
- * Il sait vérifier une carte, mais il ne sait pas où chercher dans nos fichiers.
- * UserDetailsService, c'est l'assistant qui dit :
- * "Attends, je vais chercher dans la base de données pour toi."
+ * Charge l'utilisateur depuis la BDD et vérifie qu'il n'est pas banni.
+ * Un utilisateur banni ne peut pas s'authentifier même avec un token JWT valide.
  */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -34,8 +28,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     /**
      * Charge un utilisateur par son username (appelé par Spring Security)
      *
+     * FIX : vérifie maintenant que l'utilisateur n'est pas banni.
+     * Un utilisateur banni reçoit un compte désactivé (enabled=false),
+     * ce qui provoque un DisabledException → 401 côté client.
+     *
      * @param username Le username à chercher
-     * @return Un UserDetails (objet Spring Security représentant l'utilisateur)
+     * @return Un UserDetails avec enabled=false si banni
      * @throws UsernameNotFoundException si l'utilisateur n'existe pas
      */
     @Override
@@ -45,11 +43,16 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         "User not found with username: " + username
                 ));
 
-        // On convertit notre User en UserDetails que Spring Security comprend
-        // Le rôle doit être préfixé par "ROLE_" (convention Spring Security)
+        // FIX : un utilisateur banni ne peut pas se connecter
+        boolean isEnabled = !user.getIsBanned();
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
+                isEnabled,           // enabled  — false si banni
+                true,                // accountNonExpired
+                true,                // credentialsNonExpired
+                true,                // accountNonLocked
                 List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
         );
     }

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { UserService, UserStatsResponse } from '../../core/services/user.service';
 import { PostService } from '../../core/services/post.service';
 import { ReportService } from '../../core/services/report.service';
@@ -82,15 +82,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    this.userService.getUserStats(this.profileUserId).subscribe({
-      next: stats => {
+    // FIX : forkJoin pour lancer les deux appels HTTP en parallèle
+    // au lieu d'imbriquer (getUserStats → getUserPosts en séquence).
+    // Gain de performance : les deux requêtes partent simultanément.
+    forkJoin({
+      stats: this.userService.getUserStats(this.profileUserId),
+      posts: this.userService.getUserPosts(this.profileUserId)
+    }).subscribe({
+      next: ({ stats, posts }) => {
         this.stats = stats;
-        this.userService.getUserPosts(this.profileUserId).subscribe({
-          next: posts => { this.posts = posts; this.loading = false; },
-          error: () => { this.loading = false; }
-        });
+        this.posts = posts;
+        this.loading = false;
       },
-      error: () => { this.error = 'Profil introuvable.'; this.loading = false; }
+      error: () => {
+        this.error = 'Profil introuvable.';
+        this.loading = false;
+      }
     });
   }
 
