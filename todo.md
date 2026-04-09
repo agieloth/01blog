@@ -28,21 +28,29 @@
 - [ ] **[SÉCURITÉ] WebSocketConfig** — `setAllowedOriginPatterns("*")` trop permissif en prod
 - [ ] **[SÉCURITÉ] DataInitializer** — Mots de passe admin/test hardcodés (acceptable en dev seulement)
 
-## ✅ Corrections à implémenter
+## ✅ Corrections appliquées — PR #1
 
 ### Priorité 1 — Bugs critiques
-- [ ] Fix UserDetailsServiceImpl : bloquer les utilisateurs bannis
-- [ ] Fix JwtAuthFilter : gérer les exceptions JWT proprement
-- [ ] Fix app.config.ts : enregistrer jwtInterceptor avec gestion 401
-- [ ] Fix AdminService : injection par constructeur + exceptions correctes
-- [ ] Fix AdminService.deletePost : supprimer la suppression manuelle redondante
+- [x] Fix UserDetailsServiceImpl : bloquer les utilisateurs bannis (enabled=false)
+- [x] Fix JwtAuthFilter : gérer ExpiredJwtException, MalformedJwtException, SignatureException → 401/403
+- [x] Fix app.config.ts : enregistrer jwtInterceptor avec gestion 401/logout automatique
+- [x] Fix AdminService : injection par constructeur + ResourceNotFoundException
+- [x] Fix AdminService.deletePost : suppression manuelle redondante retirée (CascadeType.ALL)
+- [x] Fix GlobalExceptionHandler : ajouter DisabledException → 403 Forbidden
 
 ### Priorité 2 — Qualité & Cohérence
-- [ ] Fix PostResponse : ObjectMapper static → injecter via Spring
-- [ ] Fix FileStorageService : null-check sur getOriginalFilename()
-- [ ] Fix FeedComponent : éviter abonnements WS en double sur commentaires
-- [ ] Fix ProfileComponent : forkJoin pour les appels parallèles
-- [ ] Fix NavbarComponent : guard sur isAuthenticated avant loadNotifications
+- [x] Fix PostResponse : ObjectMapper statique retiré, délégué à PostService (thread-safe)
+- [x] Fix PostService : adapté à la nouvelle signature PostResponse, ObjectMapper injecté
+- [x] Fix FileStorageService : null-check getOriginalFilename() + protection path traversal
+- [x] Fix FeedComponent : Set<number> commentWsSubs pour éviter doublons WS + cleanup ngOnDestroy
+- [x] Fix ProfileComponent : forkJoin pour getUserStats + getUserPosts en parallèle
+- [x] Fix NavbarComponent : guard isAuthenticated() avant loadNotifications()
+- [x] Fix AdminComponent : recharger les données à chaque switchTab()
+- [x] Fix AuthService : validation structure User localStorage + replaceUrl sur logout
 
-### Priorité 3 — Améliorations
-- [ ] Créer un todo.md de synthèse des corrections appliquées
+### Priorité 3 — Sécurité
+- [x] Fix application.properties : JWT_SECRET externalisable via variable d'environnement
+- [x] Fix WebSocketConfig : restreindre allowedOriginPatterns (plus de wildcard *)
+
+## 🔗 Pull Request
+https://github.com/agieloth/01blog/pull/1
