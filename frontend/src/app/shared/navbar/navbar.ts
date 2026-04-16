@@ -89,6 +89,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.notifOpen = false;
     if (notif.type === 'NEW_FOLLOWER') {
       this.router.navigate(['/profile', notif.relatedEntityId]);
+    } else if ( notif.type === 'NEW_POST') {
+      this.router.navigate(['/feed', notif.relatedEntityId]);
     } else {
       this.router.navigate(['/feed']);
     }

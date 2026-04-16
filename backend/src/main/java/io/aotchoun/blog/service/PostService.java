@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.aotchoun.blog.dto.request.PostRequest;
 import io.aotchoun.blog.dto.response.PostResponse;
+import io.aotchoun.blog.entity.Notification;
 import io.aotchoun.blog.entity.Post;
 import io.aotchoun.blog.entity.User;
 import io.aotchoun.blog.exception.BadRequestException;
@@ -13,6 +14,7 @@ import io.aotchoun.blog.repository.CommentRepository;
 import io.aotchoun.blog.repository.LikeRepository;
 import io.aotchoun.blog.repository.PostRepository;
 import io.aotchoun.blog.repository.UserRepository;
+import io.aotchoun.blog.repository.FollowRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ public class PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final FollowRepository followRepository;
+    private final NotificationService notificationService;
     private final SimpMessagingTemplate messagingTemplate;
     private final FileStorageService fileStorageService;
     private final ObjectMapper objectMapper; // FIX : injecté par Spring (bean configuré)
@@ -38,6 +42,8 @@ public class PostService {
                        UserRepository userRepository,
                        LikeRepository likeRepository,
                        CommentRepository commentRepository,
+                       FollowRepository followRepository,
+                       NotificationService notificationService,
                        SimpMessagingTemplate messagingTemplate,
                        FileStorageService fileStorageService,
                        ObjectMapper objectMapper) {
@@ -45,6 +51,8 @@ public class PostService {
         this.userRepository    = userRepository;
         this.likeRepository    = likeRepository;
         this.commentRepository = commentRepository;
+        this.followRepository = followRepository;
+        this.notificationService = notificationService;
         this.messagingTemplate = messagingTemplate;
         this.fileStorageService = fileStorageService;
         this.objectMapper      = objectMapper;
@@ -133,6 +141,9 @@ public class PostService {
         post = postRepository.save(post);
         PostResponse response = enrich(post, username);
 
+        // ── Notifier tous les followers ──────────────────────────────────────
+        notifyFollowers(author, post);
+
         messagingTemplate.convertAndSend("/topic/posts",
                 new WsEvent("POST_CREATED", response));
         return response;
@@ -168,6 +179,27 @@ public class PostService {
         messagingTemplate.convertAndSend("/topic/posts",
                 new WsEvent("POST_UPDATED", response));
         return response;
+    }
+
+
+    /**
+     * Envoie une notification NEW_POST à chaque follower de l'auteur.
+     * Exécuté de façon synchrone mais dans la même transaction.
+     */
+    private void notifyFollowers(User author, Post post) {
+        // Récupérer tous les abonnés de l'auteur
+        var followers = followRepository.findByFollowedId(author.getId());
+ 
+        for (var follow : followers) {
+            User follower = follow.getFollower();
+            notificationService.createNotification(
+                follower.getId(),
+                Notification.NotificationType.NEW_POST,
+                author.getUsername() + " a publié un nouveau post : " + post.getTitle(),
+                post.getId(),       // relatedEntityId = post.id → pour naviguer vers le post
+                author.getUsername()
+            );
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────

@@ -2,7 +2,6 @@ package io.aotchoun.blog.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "notifications")
 public class Notification {
@@ -53,7 +52,8 @@ public class Notification {
     public enum NotificationType {
         NEW_FOLLOWER,
         POST_LIKED,
-        POST_COMMENTED
+        POST_COMMENTED,
+        NEW_POST        // ← Nouveau type : un profil suivi a publié un post
     }
 
     // Getters & Setters

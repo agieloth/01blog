@@ -19,7 +19,6 @@
   <!-- Post Form -->
   <div class="post-form-card" *ngIf="showForm">
     <div class="post-form-label">{{ editingPostId ? 'Modifier le post' : 'Nouveau post' }}</div>
-
     <div class="form-group">
       <label>Titre</label>
       <input type="text" [(ngModel)]="postTitle" placeholder="Un titre accrocheur…" />
@@ -28,8 +27,6 @@
       <label>Contenu</label>
       <textarea [(ngModel)]="postContent" placeholder="Exprime-toi…" rows="4"></textarea>
     </div>
-
-    <!-- Image upload -->
     <div class="image-upload-section">
       <label class="image-upload-label" for="img-input">📷 Ajouter des images (max 3)</label>
       <input id="img-input" type="file" class="image-upload-input"
@@ -42,9 +39,7 @@
         </div>
       </div>
     </div>
-
     <div class="alert alert-error" *ngIf="formError">{{ formError }}</div>
-
     <div class="post-form-actions">
       <button class="btn btn-ghost btn-sm" (click)="cancelForm()">Annuler</button>
       <button class="btn btn-primary btn-sm" (click)="submitPost()" [disabled]="formLoading">
@@ -69,7 +64,7 @@
       <div class="empty-text">Sois le premier à publier quelque chose !</div>
     </div>
 
-    <article class="post-card" *ngFor="let post of posts">
+    <article class="post-card" [id]="'post-' + post.id" *ngFor="let post of posts">
       <!-- Header -->
       <div class="post-header">
         <div class="post-meta">
@@ -118,9 +113,15 @@
           {{ expandedPosts[post.id] ? '← Réduire' : 'Lire la suite →' }}
         </button>
 
-        <button class="report-btn-small" *ngIf="!isOwn(post)" (click)="openReport(post.authorId, post.authorUsername)">
-          ⚠️
-        </button>
+        <!-- Menu signalement (uniquement pour les posts des autres) -->
+        <div class="report-menu" *ngIf="!isOwn(post) && currentUser">
+          <button class="report-btn-small" (click)="openReportUser(post)" title="Signaler l'utilisateur">
+            ⚠️ User
+          </button>
+          <button class="report-btn-small" (click)="openReportPost(post)" title="Signaler le post">
+            ⚠️ Post
+          </button>
+        </div>
       </div>
 
       <!-- Comments Section -->
@@ -128,12 +129,10 @@
         <div *ngIf="commentsLoading[post.id]" class="comments-loading">
           <div class="loading-dots sm"><span></span><span></span><span></span></div>
         </div>
-
         <div class="comments-list" *ngIf="!commentsLoading[post.id]">
           <div *ngIf="!comments[post.id] || comments[post.id].length === 0" class="no-comments">
             Aucun commentaire. Sois le premier !
           </div>
-
           <div class="comment-item" *ngFor="let c of comments[post.id]">
             <div class="comment-avatar" [class.own]="c.authorId === currentUser?.id">
               {{ getInitial(c.authorUsername) }}
@@ -151,8 +150,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Comment input -->
         <div class="comment-input-row" *ngIf="currentUser">
           <div class="comment-avatar own">{{ getInitial(currentUser.username) }}</div>
           <textarea class="comment-input"
@@ -161,7 +158,11 @@
             rows="1"
             (keydown)="onCommentKey($event, post.id)">
           </textarea>
-          <button class="comment-submit" (click)="submitComment(post.id)">Envoyer</button>
+          <button class="comment-submit"
+            (click)="submitComment(post.id)"
+            [disabled]="commentSubmitting[post.id]">
+            {{ commentSubmitting[post.id] ? '…' : 'Envoyer' }}
+          </button>
         </div>
       </div>
     </article>
@@ -183,10 +184,12 @@
 </div>
 
 <!-- Report Modal -->
-<div class="modal-overlay" *ngIf="reportUserId" (click)="closeReport()">
+<div class="modal-overlay" *ngIf="reportTarget" (click)="closeReport()">
   <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-title">Signaler {{ reportUsername }}</div>
-    <div class="modal-text">Sélectionnez une raison</div>
+    <div class="modal-title">
+      {{ reportTarget.type === 'user' ? 'Signaler ' + reportTarget.label : 'Signaler le post ' + reportTarget.label }}
+    </div>
+    <div class="modal-text">Sélectionnez une raison pour ce signalement</div>
     <div class="report-reasons">
       <div class="report-reason" *ngFor="let r of reportReasons"
         [class.selected]="reportReason === r.value"
@@ -198,8 +201,10 @@
       placeholder="Description (optionnel)" rows="3"></textarea>
     <div class="alert alert-error" *ngIf="reportError">{{ reportError }}</div>
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" (click)="closeReport()">Annuler</button>
-      <button class="btn btn-sm btn-delete" (click)="submitReport()" [disabled]="reportLoading">Signaler</button>
+      <button class="btn btn-ghost btn-sm" (click)="closeReport()" [disabled]="reportLoading">Annuler</button>
+      <button class="btn btn-sm btn-delete" (click)="submitReport()" [disabled]="reportLoading">
+        {{ reportLoading ? 'Envoi…' : 'Signaler' }}
+      </button>
     </div>
   </div>
 </div>

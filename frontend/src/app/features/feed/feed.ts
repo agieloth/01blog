@@ -62,6 +62,12 @@ export class FeedComponent implements OnInit, OnDestroy {
   reportError = '';
   reportLoading = false;
 
+  reportTarget: {
+    type: 'user' | 'post',
+    label: string,
+    id: number
+  } | null = null;
+
   // Expanded
   expandedPosts: { [id: number]: boolean } = {};
 
@@ -290,19 +296,28 @@ export class FeedComponent implements OnInit, OnDestroy {
     });
   }
 
+  commentSubmitting: { [key: number]: boolean } = {};
+
   submitComment(postId: number): void {
     const content = (this.commentInputs[postId] || '').trim();
     if (!content) return;
+
+    this.commentSubmitting[postId] = true;
+
     this.postService.addComment(postId, { content }).subscribe({
       next: () => {
         this.commentInputs[postId] = '';
         const post = this.posts.find(p => p.id === postId);
         if (post) post.commentCount++;
         this.loadComments(postId);
+        this.commentSubmitting[postId] = false;
+      },
+      error: () => {
+        this.commentSubmitting[postId] = false;
       }
     });
   }
-
+  
   deleteComment(postId: number, commentId: number): void {
     this.postService.deleteComment(postId, commentId).subscribe({
       next: () => {
@@ -326,23 +341,43 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.reportError = '';
   }
 
-  closeReport(): void { this.reportUserId = null; }
+  openReportUser(post: Post): void {
+    this.reportTarget = {
+      type: 'user',
+      label: post.authorUsername,
+      id: post.authorId
+    };
+  }
+
+  openReportPost(post: Post): void {
+    this.reportTarget = {
+      type: 'post',
+      label: post.title,
+      id: post.id
+    };
+  }
+
+  // closeReport(): void { this.reportUserId = null; }
+  closeReport(): void { this.reportTarget = null; }
   selectReason(r: string): void { this.reportReason = r; this.reportError = ''; }
 
   submitReport(): void {
     if (!this.reportReason) { this.reportError = 'Sélectionnez une raison.'; return; }
-    if (!this.reportUserId) return;
+    // if (!this.reportUserId) return;
+    if (!this.reportTarget) return;
     this.reportLoading = true;
-    this.reportService.reportUser(this.reportUserId, {
-      reason: this.reportReason,
-      description: this.reportDescription || undefined
-    }).subscribe({
-      next: () => { this.reportLoading = false; this.closeReport(); },
-      error: (err) => {
-        this.reportLoading = false;
-        this.reportError = err.error?.message || 'Erreur lors du signalement.';
-      }
-    });
+    if (this.reportTarget.type === 'user') {
+      this.reportService.reportUser(this.reportTarget.id, {
+        reason: this.reportReason,
+        description: this.reportDescription || undefined
+      }).subscribe({
+        next: () => { this.reportLoading = false; this.closeReport(); },
+        error: (err) => {
+          this.reportLoading = false;
+          this.reportError = err.error?.message || 'Erreur lors du signalement.';
+        }
+      });
+    }
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
