@@ -1,134 +1,9 @@
 <!-- <app-navbar></app-navbar>
 
-<main class="app-body admin-body">
-  <div class="section-header">
-    <div class="section-title">🛡️ Panel Admin</div>
-  </div>
-
-  <div class="admin-tabs">
-    <button class="admin-tab" [class.active]="activeTab === 'users'" (click)="switchTab('users')">Utilisateurs</button>
-    <button class="admin-tab" [class.active]="activeTab === 'posts'" (click)="switchTab('posts')">Posts</button>
-    <button class="admin-tab" [class.active]="activeTab === 'reports'" (click)="switchTab('reports')">Signalements</button>
-  </div>
-
-  <div *ngIf="loading" class="posts-loading">
-    <div class="loading-dots"><span></span><span></span><span></span></div>
-  </div> -->
-
-  <!-- USERS -->
-  <!-- <div *ngIf="activeTab === 'users' && !loading">
-    <div class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Utilisateur</th><th>Rôles</th><th>Posts</th><th>Signalements</th><th>Statut</th><th>Date</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="users.length === 0"><td colspan="7" class="admin-empty">Aucun utilisateur</td></tr>
-          <tr *ngFor="let u of users">
-            <td>
-              <div class="admin-user-cell">
-                <div class="admin-avatar">{{ getInitial(u.username) }}</div>
-                <div class="admin-user-info">
-                  <div class="admin-username">{{ u.username }}</div>
-                  <div class="admin-email">{{ u.email }}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span class="admin-badge" [ngClass]="r.toLowerCase()" *ngFor="let r of u.roles">{{ r }}</span>
-            </td>
-            <td>{{ u.postCount }}</td>
-            <td>{{ u.reportCount }}</td>
-            <td>
-              <span class="admin-badge" [ngClass]="u.banned ? 'banned' : 'active'">
-                {{ u.banned ? 'BANNI' : 'ACTIF' }}
-              </span>
-            </td>
-            <td>{{ formatDate(u.createdAt) }}</td>
-            <td>
-              <div class="admin-actions">
-                <button class="admin-btn" [ngClass]="u.banned ? 'admin-btn-unban' : 'admin-btn-ban'"
-                  (click)="toggleBan(u.id)">
-                  {{ u.banned ? 'Débannir' : 'Bannir' }}
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div> -->
-
-  <!-- POSTS -->
-  <!-- <div *ngIf="activeTab === 'posts' && !loading">
-    <div class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Titre</th><th>Auteur</th><th>Contenu</th><th>Likes</th><th>Commentaires</th><th>Date</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="posts.length === 0"><td colspan="7" class="admin-empty">Aucun post</td></tr>
-          <tr *ngFor="let p of posts">
-            <td><strong>{{ p.title }}</strong></td>
-            <td>{{ p.author }}</td>
-            <td><div class="admin-post-preview">{{ p.content }}</div></td>
-            <td>{{ p.likeCount }}</td>
-            <td>{{ p.commentCount }}</td>
-            <td>{{ formatDate(p.createdAt) }}</td>
-            <td>
-              <button class="admin-btn admin-btn-delete" (click)="deletePost(p.id)">Supprimer</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div> -->
-
-  <!-- REPORTS -->
-  <!-- <div *ngIf="activeTab === 'reports' && !loading">
-    <div class="admin-table-container">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Signaleur</th><th>Signalé</th><th>Raison</th><th>Description</th><th>Statut</th><th>Date</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="reports.length === 0"><td colspan="7" class="admin-empty">Aucun signalement</td></tr>
-          <tr *ngFor="let r of reports">
-            <td>{{ r.reporterUsername }}</td>
-            <td>{{ r.reportedUsername }}</td>
-            <td><strong>{{ r.reason }}</strong></td>
-            <td><div class="admin-report-desc">{{ r.description || '—' }}</div></td>
-            <td>
-              <span class="admin-badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span>
-            </td>
-            <td>{{ formatDate(r.createdAt) }}</td>
-            <td>
-              <div class="admin-actions" *ngIf="r.status === 'PENDING'">
-                <button class="admin-btn admin-btn-review" (click)="updateReportStatus(r.id, 'REVIEWED')">Traiter</button>
-                <button class="admin-btn admin-btn-dismiss" (click)="updateReportStatus(r.id, 'DISMISSED')">Rejeter</button>
-              </div>
-              <span *ngIf="r.status !== 'PENDING'" style="color:var(--muted)">Traité</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</main> -->
-
-
-<app-navbar></app-navbar>
-
-<main class="app-body admin-body">
+<main class="app-body admin-body"> -->
 
   <!-- ── En-tête + Analytics ─────────────────────────────────────────────── -->
-  <div class="section-header">
+  <!-- <div class="section-header">
     <div class="section-title">🛡️ Panel Admin</div>
   </div>
 
@@ -149,10 +24,10 @@
       <div class="admin-stat-value">{{ stats.bannedUsers }}</div>
       <div class="admin-stat-label">Utilisateurs bannis</div>
     </div>
-  </div>
+  </div> -->
 
   <!-- ── Onglets ─────────────────────────────────────────────────────────── -->
-  <div class="admin-tabs">
+  <!-- <div class="admin-tabs">
     <button class="admin-tab" [class.active]="activeTab === 'users'"   (click)="switchTab('users')">
       👤 Utilisateurs <span class="tab-count">{{ users.length }}</span>
     </button>
@@ -164,23 +39,23 @@
       <span class="tab-count warn" *ngIf="stats.pendingReports > 0">{{ stats.pendingReports }}</span>
       <span class="tab-count" *ngIf="stats.pendingReports === 0">{{ reports.length }}</span>
     </button>
-  </div>
+  </div> -->
 
   <!-- ── Loading global ──────────────────────────────────────────────────── -->
-  <div *ngIf="loading" class="posts-loading">
+  <!-- <div *ngIf="loading" class="posts-loading">
     <div class="loading-dots"><span></span><span></span><span></span></div>
-  </div>
+  </div> -->
 
   <!-- ── Erreur de chargement ─────────────────────────────────────────────── -->
-  <div *ngIf="loadError && !loading" class="alert alert-error" style="margin-bottom:20px">
+  <!-- <div *ngIf="loadError && !loading" class="alert alert-error" style="margin-bottom:20px">
     {{ loadError }}
     <button class="btn btn-ghost btn-sm" style="margin-left:12px" (click)="loadAll()">
       Réessayer
     </button>
-  </div>
+  </div> -->
 
   <!-- ── USERS ───────────────────────────────────────────────────────────── -->
-  <div *ngIf="activeTab === 'users' && !loading">
+  <!-- <div *ngIf="activeTab === 'users' && !loading">
     <div class="admin-table-container">
       <table class="admin-table">
         <thead>
@@ -234,10 +109,10 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </div> -->
 
   <!-- ── POSTS ───────────────────────────────────────────────────────────── -->
-  <div *ngIf="activeTab === 'posts' && !loading">
+  <!-- <div *ngIf="activeTab === 'posts' && !loading">
     <div class="admin-table-container">
       <table class="admin-table">
         <thead>
@@ -273,10 +148,10 @@
         </tbody>
       </table>
     </div>
-  </div>
+  </div> -->
 
   <!-- ── REPORTS ─────────────────────────────────────────────────────────── -->
-  <div *ngIf="activeTab === 'reports' && !loading">
+  <!-- <div *ngIf="activeTab === 'reports' && !loading">
     <div class="admin-table-container">
       <table class="admin-table">
         <thead>
@@ -336,4 +211,261 @@
     </div>
   </div>
 
+</main> -->
+
+
+<app-navbar></app-navbar>
+
+<main class="app-body admin-body">
+
+  <!-- ── En-tête ──────────────────────────────────────────────────────────── -->
+  <div class="section-header">
+    <div class="section-title">🛡️ Panel Admin</div>
+  </div>
+
+  <!-- ── Stats cards ──────────────────────────────────────────────────────── -->
+  <div class="admin-stats" *ngIf="!loading">
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">{{ stats.totalUsers }}</div>
+      <div class="admin-stat-label">Utilisateurs</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">{{ stats.totalPosts }}</div>
+      <div class="admin-stat-label">Posts</div>
+    </div>
+    <div class="admin-stat-card warn">
+      <div class="admin-stat-value">{{ stats.pendingReports }}</div>
+      <div class="admin-stat-label">Signalements en attente</div>
+    </div>
+    <div class="admin-stat-card danger">
+      <div class="admin-stat-value">{{ stats.bannedUsers }}</div>
+      <div class="admin-stat-label">Utilisateurs bannis</div>
+    </div>
+  </div>
+
+  <!-- ── Onglets ───────────────────────────────────────────────────────────── -->
+  <div class="admin-tabs">
+    <button class="admin-tab" [class.active]="activeTab === 'users'" (click)="switchTab('users')">
+      👤 Utilisateurs <span class="tab-count">{{ users.length }}</span>
+    </button>
+    <button class="admin-tab" [class.active]="activeTab === 'posts'" (click)="switchTab('posts')">
+      📝 Posts <span class="tab-count">{{ posts.length }}</span>
+    </button>
+    <button class="admin-tab" [class.active]="activeTab === 'reports'" (click)="switchTab('reports')">
+      ⚠️ Signalements
+      <span class="tab-count warn" *ngIf="stats.pendingReports > 0">{{ stats.pendingReports }}</span>
+      <span class="tab-count" *ngIf="stats.pendingReports === 0">{{ reports.length }}</span>
+    </button>
+  </div>
+
+  <!-- ── Loading global ───────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="posts-loading">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- ── Erreur de chargement ─────────────────────────────────────────────── -->
+  <div *ngIf="loadError && !loading" class="alert alert-error" style="margin-bottom:20px">
+    {{ loadError }}
+    <button class="btn btn-ghost btn-sm" style="margin-left:12px" (click)="loadAll()">
+      Réessayer
+    </button>
+  </div>
+
+  <!-- ── USERS ─────────────────────────────────────────────────────────────── -->
+  <div *ngIf="activeTab === 'users' && !loading">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Rôle</th>
+            <th>Posts</th>
+            <th>Signalements reçus</th>
+            <th>Statut</th>
+            <th>Inscrit le</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="users.length === 0">
+            <td colspan="7" class="admin-empty">Aucun utilisateur</td>
+          </tr>
+          <tr *ngFor="let u of users">
+            <td>
+              <div class="admin-user-cell">
+                <div class="admin-avatar">{{ getInitial(u.username) }}</div>
+                <div class="admin-user-info">
+                  <div class="admin-username">{{ u.username }}</div>
+                  <div class="admin-email">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="admin-badge" [ngClass]="r.toLowerCase()" *ngFor="let r of u.roles">{{ r }}</span>
+            </td>
+            <td>{{ u.postCount }}</td>
+            <td>
+              <span [class.text-danger]="u.reportCount > 0">{{ u.reportCount }}</span>
+            </td>
+            <td>
+              <span class="admin-badge" [ngClass]="u.banned ? 'banned' : 'active'">
+                {{ u.banned ? 'BANNI' : 'ACTIF' }}
+              </span>
+            </td>
+            <td>{{ formatDate(u.createdAt) }}</td>
+            <td>
+              <button class="admin-btn"
+                [ngClass]="u.banned ? 'admin-btn-unban' : 'admin-btn-ban'"
+                [disabled]="actionLoading[u.id]"
+                (click)="requestToggleBan(u)">
+                <span *ngIf="actionLoading[u.id]">…</span>
+                <span *ngIf="!actionLoading[u.id]">{{ u.banned ? 'Débannir' : 'Bannir' }}</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── POSTS ─────────────────────────────────────────────────────────────── -->
+  <div *ngIf="activeTab === 'posts' && !loading">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Titre</th>
+            <th>Auteur</th>
+            <th>Aperçu</th>
+            <th>❤️</th>
+            <th>💬</th>
+            <th>Publié le</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="posts.length === 0">
+            <td colspan="7" class="admin-empty">Aucun post</td>
+          </tr>
+          <tr *ngFor="let p of posts">
+            <td><strong>{{ p.title }}</strong></td>
+            <td>{{ p.author }}</td>
+            <td><div class="admin-post-preview">{{ p.content }}</div></td>
+            <td>{{ p.likeCount }}</td>
+            <td>{{ p.commentCount }}</td>
+            <td>{{ formatDate(p.createdAt) }}</td>
+            <td>
+              <button class="admin-btn admin-btn-delete"
+                [disabled]="actionLoading[p.id]"
+                (click)="openDeletePostModal(p)">
+                {{ actionLoading[p.id] ? '…' : 'Supprimer' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── REPORTS ────────────────────────────────────────────────────────────── -->
+  <div *ngIf="activeTab === 'reports' && !loading">
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Signaleur</th>
+            <th>Signalé</th>
+            <th>Raison</th>
+            <th>Description</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="reports.length === 0">
+            <td colspan="7" class="admin-empty">Aucun signalement</td>
+          </tr>
+          <tr *ngFor="let r of reports" [class.report-pending]="r.status === 'PENDING'">
+            <td>{{ r.reporterUsername }}</td>
+            <td><strong>{{ r.reportedUsername }}</strong></td>
+            <td><strong>{{ r.reason }}</strong></td>
+            <td><div class="admin-report-desc">{{ r.description || '—' }}</div></td>
+            <td>
+              <span class="admin-badge" [ngClass]="r.status.toLowerCase()">{{ r.status }}</span>
+            </td>
+            <td>{{ formatDate(r.createdAt) }}</td>
+            <td>
+              <div class="admin-actions" *ngIf="r.status === 'PENDING'">
+                <button class="admin-btn admin-btn-review"
+                  [disabled]="actionLoading[r.id]"
+                  (click)="updateReportStatus(r.id, 'REVIEWED')">
+                  {{ actionLoading[r.id] ? '…' : 'Traiter' }}
+                </button>
+                <button class="admin-btn admin-btn-dismiss"
+                  [disabled]="actionLoading[r.id]"
+                  (click)="updateReportStatus(r.id, 'DISMISSED')">
+                  {{ actionLoading[r.id] ? '…' : 'Rejeter' }}
+                </button>
+              </div>
+              <span *ngIf="r.status !== 'PENDING'" style="color:var(--muted);font-size:0.8rem">Traité</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </main>
+
+<!-- ── Modal : confirmation de ban / déban ── -->
+<div class="modal-overlay" *ngIf="pendingBanUserId" (click)="closeBanModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon" [ngClass]="pendingBanIsBanned ? 'modal-icon--edit' : 'modal-icon--delete'">
+      {{ pendingBanIsBanned ? '🔓' : '🔒' }}
+    </div>
+    <div class="modal-title">
+      {{ pendingBanIsBanned ? 'Débannir' : 'Bannir' }} {{ pendingBanUsername }} ?
+    </div>
+    <div class="modal-text" *ngIf="!pendingBanIsBanned">
+      <strong>{{ pendingBanUsername }}</strong> ne pourra plus se connecter à l'application.
+      Tu pourras le débannir à tout moment.
+    </div>
+    <div class="modal-text" *ngIf="pendingBanIsBanned">
+      <strong>{{ pendingBanUsername }}</strong> pourra à nouveau se connecter à l'application.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" (click)="closeBanModal()" [disabled]="banLoading">
+        Annuler
+      </button>
+      <button class="btn btn-sm"
+        [class.btn-delete]="!pendingBanIsBanned"
+        [class.btn-primary]="pendingBanIsBanned"
+        (click)="confirmToggleBan()"
+        [disabled]="banLoading">
+        {{ banLoading ? 'En cours…' : (pendingBanIsBanned ? 'Débannir' : 'Bannir') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal : confirmation de suppression de post ── -->
+<div class="modal-overlay" *ngIf="deletingAdminPostId" (click)="closeDeletePostModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon modal-icon--delete">🗑</div>
+    <div class="modal-title">Supprimer ce post ?</div>
+    <div class="modal-text">
+      Tu es sur le point de supprimer définitivement
+      <strong>« {{ deletingAdminPostTitle }} »</strong>.
+      Cette action est irréversible et supprimera également tous les likes et commentaires associés.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" (click)="closeDeletePostModal()" [disabled]="deleteAdminLoading">
+        Annuler
+      </button>
+      <button class="btn btn-sm btn-delete" (click)="confirmDeletePost()" [disabled]="deleteAdminLoading">
+        {{ deleteAdminLoading ? 'Suppression…' : 'Supprimer définitivement' }}
+      </button>
+    </div>
+  </div>
+</div>

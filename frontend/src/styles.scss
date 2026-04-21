@@ -1061,7 +1061,90 @@ input:focus, textarea:focus, select:focus {
   .admin-stats { grid-template-columns: 1fr 1fr; }
 }
 
+/* ── À ajouter à la fin de styles.scss ──────────────────── */
 
+/* Modal icon */
+.modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin: 0 auto 16px;
+}
+.modal-icon--edit {
+  background: var(--accent-glow);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+.modal-icon--delete {
+  background: var(--danger-muted);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+/* Admin stats cards */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.admin-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  text-align: center;
+  &.warn  { border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.06); }
+  &.danger { border-color: rgba(255, 77, 109, 0.4); background: var(--danger-muted); }
+}
+.admin-stat-value {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.admin-stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tab count badge */
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
+  font-family: var(--font-body);
+  &.warn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+}
+
+/* Report row highlight */
+.report-pending td {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+/* Signalements reçus en rouge si > 0 */
+.text-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
 
 /* ============================================================
    STUDENT HUB – Global Styles

@@ -19,6 +19,11 @@
 //   createdAt: string;
 // }
 
+// interface ReportTarget {
+//   postId: number;
+//   postTitle: string;
+// }
+
 // @Component({
 //   selector: 'app-feed',
 //   standalone: true,
@@ -46,27 +51,19 @@
 //   deletingPostId: number | null = null;
 //   deleteLoading = false;
 
-//   // Comments
+//   // Comments — le compteur est UNIQUEMENT piloté par le backend (pas d'incrémentation locale)
 //   openComments: { [id: number]: boolean } = {};
 //   comments: { [id: number]: CommentItem[] } = {};
 //   commentInputs: { [id: number]: string } = {};
 //   commentsLoading: { [id: number]: boolean } = {};
-//   // FIX : tracker les posts déjà abonnés en WS pour éviter les doublons
-//   private commentWsSubs: Set<number> = new Set();
+//   commentSubmitting: { [id: number]: boolean } = {};
 
-//   // Report
-//   reportUserId: number | null = null;
-//   reportUsername = '';
+//   // Report — supporte user ET post
+//   reportTarget: ReportTarget | null = null;
 //   reportReason = '';
 //   reportDescription = '';
 //   reportError = '';
 //   reportLoading = false;
-
-//   reportTarget: {
-//     type: 'user' | 'post',
-//     label: string,
-//     id: number
-//   } | null = null;
 
 //   // Expanded
 //   expandedPosts: { [id: number]: boolean } = {};
@@ -75,11 +72,11 @@
 //   readonly apiBase = environment.apiUrl.replace('/api', '');
 
 //   readonly reportReasons = [
-//     { value: 'SPAM', label: 'Spam' },
-//     { value: 'HARASSMENT', label: 'Harcèlement' },
-//     { value: 'INAPPROPRIATE_CONTENT', label: 'Contenu inapproprié' },
-//     { value: 'HATE_SPEECH', label: 'Discours haineux' },
-//     { value: 'OTHER', label: 'Autre' },
+//     { value: 'SPAM',                   label: 'Spam' },
+//     { value: 'HARASSMENT',             label: 'Harcèlement' },
+//     { value: 'INAPPROPRIATE_CONTENT',  label: 'Contenu inapproprié' },
+//     { value: 'HATE_SPEECH',            label: 'Discours haineux' },
+//     { value: 'OTHER',                  label: 'Autre' },
 //   ];
 
 //   constructor(
@@ -96,18 +93,27 @@
 
 //     this.subs.push(
 //       this.wsService.postEvents.subscribe(event => {
-//         if (event.type === 'POST_CREATED') {
-//           if (event.data.authorId !== this.currentUser?.id) {
-//             this.posts.unshift(event.data);
+//         switch (event.type) {
+//           case 'POST_CREATED':
+//             // Ne pas ajouter son propre post (déjà rechargé via loadPosts)
+//             if (event.data.authorId !== this.currentUser?.id) {
+//               this.posts.unshift(event.data);
+//             }
+//             break;
+//           case 'POST_UPDATED': {
+//             const idx = this.posts.findIndex(p => p.id === event.data.id);
+//             if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
+//             break;
 //           }
-//         } else if (event.type === 'POST_UPDATED') {
-//           const idx = this.posts.findIndex(p => p.id === event.data.id);
-//           if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
-//         } else if (event.type === 'POST_DELETED') {
-//           this.posts = this.posts.filter(p => p.id !== event.data);
-//         } else if (event.type === 'COMMENT_COUNT_UPDATED') {
-//           const post = this.posts.find(p => p.id === event.data.postId);
-//           if (post) post.commentCount = event.data.count;
+//           case 'POST_DELETED':
+//             this.posts = this.posts.filter(p => p.id !== event.data);
+//             break;
+//           case 'COMMENT_COUNT_UPDATED': {
+//             // Source de vérité unique : le backend
+//             const post = this.posts.find(p => p.id === event.data.postId);
+//             if (post) post.commentCount = event.data.count;
+//             break;
+//           }
 //         }
 //       })
 //     );
@@ -122,8 +128,6 @@
 
 //   ngOnDestroy(): void {
 //     this.subs.forEach(s => s.unsubscribe());
-//     // FIX : réinitialiser le set des abonnements WS
-//     this.commentWsSubs.clear();
 //   }
 
 //   loadPosts(): void {
@@ -191,7 +195,7 @@
 //         this.clearImages();
 //         this.loadPosts();
 //       },
-//       error: (err) => {
+//       error: err => {
 //         this.formLoading = false;
 //         this.formError = err.error?.message || 'Erreur lors de la publication.';
 //       }
@@ -203,20 +207,16 @@
 //     const input = event.target as HTMLInputElement;
 //     const files = Array.from(input.files || []);
 //     if (!files.length) return;
-
 //     if (this.selectedImages.length + files.length > 3) {
 //       this.formError = 'Maximum 3 images par post.';
-//       input.value = '';
-//       return;
+//       input.value = ''; return;
 //     }
 //     for (const f of files) {
 //       if (f.size > 5 * 1024 * 1024) {
 //         this.formError = 'Chaque image doit faire moins de 5 MB.';
-//         input.value = '';
-//         return;
+//         input.value = ''; return;
 //       }
 //     }
-
 //     this.selectedImages.push(...files);
 //     files.forEach(f => {
 //       const reader = new FileReader();
@@ -227,15 +227,8 @@
 //     input.value = '';
 //   }
 
-//   removeImage(i: number): void {
-//     this.selectedImages.splice(i, 1);
-//     this.imagePreviews.splice(i, 1);
-//   }
-
-//   clearImages(): void {
-//     this.selectedImages = [];
-//     this.imagePreviews = [];
-//   }
+//   removeImage(i: number): void { this.selectedImages.splice(i, 1); this.imagePreviews.splice(i, 1); }
+//   clearImages(): void { this.selectedImages = []; this.imagePreviews = []; }
 
 //   // ── DELETE ────────────────────────────────────────────────────────────────
 //   openDelete(id: number): void { this.deletingPostId = id; }
@@ -259,10 +252,7 @@
 //     this.postService.toggleLike(postId).subscribe({
 //       next: data => {
 //         const post = this.posts.find(p => p.id === postId);
-//         if (post) {
-//           post.likeCount = data.likeCount;
-//           post.likedByCurrentUser = data.likedByCurrentUser;
-//         }
+//         if (post) { post.likeCount = data.likeCount; post.likedByCurrentUser = data.likedByCurrentUser; }
 //       }
 //     });
 //   }
@@ -271,19 +261,14 @@
 //   toggleComments(postId: number): void {
 //     this.openComments[postId] = !this.openComments[postId];
 //     if (this.openComments[postId]) {
-//       // Charger les commentaires si pas encore chargés
+//       this.loadComments(postId);
+//       // Subscribe WS une seule fois par post
 //       if (!this.comments[postId]) {
-//         this.loadComments(postId);
-//       }
-//       // FIX : s'abonner au WS seulement si pas déjà abonné pour ce post
-//       if (!this.commentWsSubs.has(postId)) {
-//         this.commentWsSubs.add(postId);
-//         const sub = this.wsService.subscribeToComments(postId).subscribe(event => {
+//         this.wsService.subscribeToComments(postId).subscribe(event => {
 //           if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
 //             this.loadComments(postId);
 //           }
 //         });
-//         this.subs.push(sub); // géré par ngOnDestroy pour cleanup
 //       }
 //     }
 //   }
@@ -291,38 +276,36 @@
 //   loadComments(postId: number): void {
 //     this.commentsLoading[postId] = true;
 //     this.postService.getComments(postId).subscribe({
-//       next: data => { this.comments[postId] = data as CommentItem[]; this.commentsLoading[postId] = false; },
+//       next: data => {
+//         this.comments[postId] = data as CommentItem[];
+//         this.commentsLoading[postId] = false;
+//         // Synchroniser le compteur avec la réalité
+//         const post = this.posts.find(p => p.id === postId);
+//         if (post) post.commentCount = data.length;
+//       },
 //       error: () => { this.commentsLoading[postId] = false; }
 //     });
 //   }
 
-//   commentSubmitting: { [key: number]: boolean } = {};
-
 //   submitComment(postId: number): void {
 //     const content = (this.commentInputs[postId] || '').trim();
-//     if (!content) return;
-
+//     if (!content || this.commentSubmitting[postId]) return;
 //     this.commentSubmitting[postId] = true;
-
 //     this.postService.addComment(postId, { content }).subscribe({
 //       next: () => {
 //         this.commentInputs[postId] = '';
-//         const post = this.posts.find(p => p.id === postId);
-//         if (post) post.commentCount++;
+//         this.commentSubmitting[postId] = false;
+//         // Ne pas incrémenter manuellement — le WS COMMENT_COUNT_UPDATED s'en charge
 //         this.loadComments(postId);
-//         this.commentSubmitting[postId] = false;
 //       },
-//       error: () => {
-//         this.commentSubmitting[postId] = false;
-//       }
+//       error: () => { this.commentSubmitting[postId] = false; }
 //     });
 //   }
-  
+
 //   deleteComment(postId: number, commentId: number): void {
 //     this.postService.deleteComment(postId, commentId).subscribe({
 //       next: () => {
-//         const post = this.posts.find(p => p.id === postId);
-//         if (post && post.commentCount > 0) post.commentCount--;
+//         // Ne pas décrémenter manuellement — le WS COMMENT_COUNT_UPDATED s'en charge
 //         this.loadComments(postId);
 //       }
 //     });
@@ -333,71 +316,47 @@
 //   }
 
 //   // ── REPORT ────────────────────────────────────────────────────────────────
-//   openReport(userId: number, username: string): void {
-//     this.reportUserId = userId;
-//     this.reportUsername = username;
+
+//   openReport(post: Post): void {
+//     this.reportTarget = { postId: post.id, postTitle: post.title };
 //     this.reportReason = '';
 //     this.reportDescription = '';
 //     this.reportError = '';
+//     this.reportLoading = false;
 //   }
 
-//   openReportUser(post: Post): void {
-//     this.reportTarget = {
-//       type: 'user',
-//       label: post.authorUsername,
-//       id: post.authorId
-//     };
+//   closeReport(): void {
+//     this.reportTarget = null;
+//     this.reportLoading = false;
 //   }
 
-//   openReportPost(post: Post): void {
-//     this.reportTarget = {
-//       type: 'post',
-//       label: post.title,
-//       id: post.id
-//     };
-//   }
-
-//   // closeReport(): void { this.reportUserId = null; }
-//   closeReport(): void { this.reportTarget = null; }
 //   selectReason(r: string): void { this.reportReason = r; this.reportError = ''; }
 
 //   submitReport(): void {
 //     if (!this.reportReason) { this.reportError = 'Sélectionnez une raison.'; return; }
-//     // if (!this.reportUserId) return;
 //     if (!this.reportTarget) return;
 //     this.reportLoading = true;
-//     if (this.reportTarget.type === 'user') {
-//       this.reportService.reportUser(this.reportTarget.id, {
-//         reason: this.reportReason,
-//         description: this.reportDescription || undefined
-//       }).subscribe({
-//         next: () => { this.reportLoading = false; this.closeReport(); },
-//         error: (err) => {
-//           this.reportLoading = false;
-//           this.reportError = err.error?.message || 'Erreur lors du signalement.';
-//         }
-//       });
-//     }
+//     this.reportError = '';
+
+//     this.reportService.reportPost(this.reportTarget.postId, {
+//       reason: this.reportReason,
+//       description: this.reportDescription.trim() || undefined
+//     }).subscribe({
+//       next: () => {
+//         this.reportLoading = false;
+//         this.closeReport();
+//       },
+//       error: err => {
+//         this.reportLoading = false;
+//         this.reportError = err.error?.message || 'Erreur lors du signalement.';
+//       }
+//     });
 //   }
 
 //   // ── HELPERS ───────────────────────────────────────────────────────────────
-//   toggleExpand(postId: number): void {
-//     this.expandedPosts[postId] = !this.expandedPosts[postId];
-//   }
-
-//   isOwn(post: Post): boolean {
-//     return this.currentUser?.id === post.authorId;
-//   }
-
-//   canEdit(post: Post): boolean {
-//     // FIX : seulement si l'utilisateur est authentifié et propriétaire du post
-//     return this.authService.isAuthenticated() && this.isOwn(post);
-//   }
-
-//   goToProfile(userId: number): void {
-//     this.router.navigate(['/profile', userId]);
-//   }
-
+//   toggleExpand(postId: number): void { this.expandedPosts[postId] = !this.expandedPosts[postId]; }
+//   isOwn(post: Post): boolean { return this.currentUser?.id === post.authorId; }
+//   goToProfile(userId: number): void { this.router.navigate(['/profile', userId]); }
 //   getInitial(u?: string): string { return u ? u[0].toUpperCase() : '?'; }
 
 //   getImageUrl(url: string): string {
@@ -406,15 +365,25 @@
 //     return `${this.apiBase}${url}`;
 //   }
 
+//   /**
+//    * Formate une date ISO (avec ou sans timezone).
+//    * Le backend Spring renvoie LocalDateTime sans 'Z' → on force l'interprétation locale.
+//    */
 //   formatDate(s: string): string {
-//     const d = new Date(s), diff = (Date.now() - d.getTime()) / 1000;
-//     if (diff < 60) return "à l'instant";
-//     if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+//     if (!s) return '';
+//     // Si pas de timezone info, ajouter l'offset local pour éviter le décalage UTC
+//     const normalized = s.includes('T') && !s.includes('Z') && !s.includes('+') && !s.includes('-', 10)
+//       ? s + 'Z'  // traiter comme UTC (le serveur est généralement en UTC)
+//       : s;
+//     const d = new Date(normalized);
+//     if (isNaN(d.getTime())) return s;
+//     const diff = (Date.now() - d.getTime()) / 1000;
+//     if (diff < 60)    return "à l'instant";
+//     if (diff < 3600)  return `il y a ${Math.floor(diff / 60)} min`;
 //     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
 //     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 //   }
 // }
-
 
 
 
@@ -437,11 +406,6 @@ interface CommentItem {
   authorId: number;
   authorUsername: string;
   createdAt: string;
-}
-
-interface ReportTarget {
-  postId: number;
-  postTitle: string;
 }
 
 @Component({
@@ -467,19 +431,22 @@ export class FeedComponent implements OnInit, OnDestroy {
   formError = '';
   formLoading = false;
 
+  // Edit confirmation — post en attente de confirmation avant d'ouvrir le form
+  pendingEditPost: Post | null = null;
+
   // Delete
   deletingPostId: number | null = null;
   deleteLoading = false;
 
-  // Comments — le compteur est UNIQUEMENT piloté par le backend (pas d'incrémentation locale)
+  // Comments
   openComments: { [id: number]: boolean } = {};
   comments: { [id: number]: CommentItem[] } = {};
   commentInputs: { [id: number]: string } = {};
   commentsLoading: { [id: number]: boolean } = {};
-  commentSubmitting: { [id: number]: boolean } = {};
 
-  // Report — supporte user ET post
-  reportTarget: ReportTarget | null = null;
+  // Report
+  reportUserId: number | null = null;
+  reportUsername = '';
   reportReason = '';
   reportDescription = '';
   reportError = '';
@@ -492,11 +459,11 @@ export class FeedComponent implements OnInit, OnDestroy {
   readonly apiBase = environment.apiUrl.replace('/api', '');
 
   readonly reportReasons = [
-    { value: 'SPAM',                   label: 'Spam' },
-    { value: 'HARASSMENT',             label: 'Harcèlement' },
-    { value: 'INAPPROPRIATE_CONTENT',  label: 'Contenu inapproprié' },
-    { value: 'HATE_SPEECH',            label: 'Discours haineux' },
-    { value: 'OTHER',                  label: 'Autre' },
+    { value: 'SPAM', label: 'Spam' },
+    { value: 'HARASSMENT', label: 'Harcèlement' },
+    { value: 'INAPPROPRIATE_CONTENT', label: 'Contenu inapproprié' },
+    { value: 'HATE_SPEECH', label: 'Discours haineux' },
+    { value: 'OTHER', label: 'Autre' },
   ];
 
   constructor(
@@ -513,27 +480,18 @@ export class FeedComponent implements OnInit, OnDestroy {
 
     this.subs.push(
       this.wsService.postEvents.subscribe(event => {
-        switch (event.type) {
-          case 'POST_CREATED':
-            // Ne pas ajouter son propre post (déjà rechargé via loadPosts)
-            if (event.data.authorId !== this.currentUser?.id) {
-              this.posts.unshift(event.data);
-            }
-            break;
-          case 'POST_UPDATED': {
-            const idx = this.posts.findIndex(p => p.id === event.data.id);
-            if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
-            break;
+        if (event.type === 'POST_CREATED') {
+          if (event.data.authorId !== this.currentUser?.id) {
+            this.posts.unshift(event.data);
           }
-          case 'POST_DELETED':
-            this.posts = this.posts.filter(p => p.id !== event.data);
-            break;
-          case 'COMMENT_COUNT_UPDATED': {
-            // Source de vérité unique : le backend
-            const post = this.posts.find(p => p.id === event.data.postId);
-            if (post) post.commentCount = event.data.count;
-            break;
-          }
+        } else if (event.type === 'POST_UPDATED') {
+          const idx = this.posts.findIndex(p => p.id === event.data.id);
+          if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
+        } else if (event.type === 'POST_DELETED') {
+          this.posts = this.posts.filter(p => p.id !== event.data);
+        } else if (event.type === 'COMMENT_COUNT_UPDATED') {
+          const post = this.posts.find(p => p.id === event.data.postId);
+          if (post) post.commentCount = event.data.count;
         }
       })
     );
@@ -572,7 +530,16 @@ export class FeedComponent implements OnInit, OnDestroy {
     }, 50);
   }
 
-  startEdit(post: Post): void {
+  // Ouvre la modale de confirmation avant édition
+  requestEdit(post: Post): void {
+    this.pendingEditPost = post;
+  }
+
+  // Confirmation → on ouvre vraiment le formulaire
+  confirmEdit(): void {
+    if (!this.pendingEditPost) return;
+    const post = this.pendingEditPost;
+    this.pendingEditPost = null;
     this.editingPostId = post.id;
     this.postTitle = post.title;
     this.postContent = post.content;
@@ -582,6 +549,10 @@ export class FeedComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       document.querySelector('.post-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+  }
+
+  cancelEdit(): void {
+    this.pendingEditPost = null;
   }
 
   cancelForm(): void {
@@ -615,7 +586,7 @@ export class FeedComponent implements OnInit, OnDestroy {
         this.clearImages();
         this.loadPosts();
       },
-      error: err => {
+      error: (err) => {
         this.formLoading = false;
         this.formError = err.error?.message || 'Erreur lors de la publication.';
       }
@@ -627,16 +598,20 @@ export class FeedComponent implements OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     if (!files.length) return;
+
     if (this.selectedImages.length + files.length > 3) {
       this.formError = 'Maximum 3 images par post.';
-      input.value = ''; return;
+      input.value = '';
+      return;
     }
     for (const f of files) {
       if (f.size > 5 * 1024 * 1024) {
         this.formError = 'Chaque image doit faire moins de 5 MB.';
-        input.value = ''; return;
+        input.value = '';
+        return;
       }
     }
+
     this.selectedImages.push(...files);
     files.forEach(f => {
       const reader = new FileReader();
@@ -647,8 +622,15 @@ export class FeedComponent implements OnInit, OnDestroy {
     input.value = '';
   }
 
-  removeImage(i: number): void { this.selectedImages.splice(i, 1); this.imagePreviews.splice(i, 1); }
-  clearImages(): void { this.selectedImages = []; this.imagePreviews = []; }
+  removeImage(i: number): void {
+    this.selectedImages.splice(i, 1);
+    this.imagePreviews.splice(i, 1);
+  }
+
+  clearImages(): void {
+    this.selectedImages = [];
+    this.imagePreviews = [];
+  }
 
   // ── DELETE ────────────────────────────────────────────────────────────────
   openDelete(id: number): void { this.deletingPostId = id; }
@@ -672,7 +654,10 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.postService.toggleLike(postId).subscribe({
       next: data => {
         const post = this.posts.find(p => p.id === postId);
-        if (post) { post.likeCount = data.likeCount; post.likedByCurrentUser = data.likedByCurrentUser; }
+        if (post) {
+          post.likeCount = data.likeCount;
+          post.likedByCurrentUser = data.likedByCurrentUser;
+        }
       }
     });
   }
@@ -680,52 +665,42 @@ export class FeedComponent implements OnInit, OnDestroy {
   // ── COMMENTS ──────────────────────────────────────────────────────────────
   toggleComments(postId: number): void {
     this.openComments[postId] = !this.openComments[postId];
-    if (this.openComments[postId]) {
+    if (this.openComments[postId] && !this.comments[postId]) {
       this.loadComments(postId);
-      // Subscribe WS une seule fois par post
-      if (!this.comments[postId]) {
-        this.wsService.subscribeToComments(postId).subscribe(event => {
-          if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
-            this.loadComments(postId);
-          }
-        });
-      }
+      this.wsService.subscribeToComments(postId).subscribe(event => {
+        if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
+          this.loadComments(postId);
+        }
+      });
     }
   }
 
   loadComments(postId: number): void {
     this.commentsLoading[postId] = true;
     this.postService.getComments(postId).subscribe({
-      next: data => {
-        this.comments[postId] = data as CommentItem[];
-        this.commentsLoading[postId] = false;
-        // Synchroniser le compteur avec la réalité
-        const post = this.posts.find(p => p.id === postId);
-        if (post) post.commentCount = data.length;
-      },
+      next: data => { this.comments[postId] = data as CommentItem[]; this.commentsLoading[postId] = false; },
       error: () => { this.commentsLoading[postId] = false; }
     });
   }
 
   submitComment(postId: number): void {
     const content = (this.commentInputs[postId] || '').trim();
-    if (!content || this.commentSubmitting[postId]) return;
-    this.commentSubmitting[postId] = true;
+    if (!content) return;
     this.postService.addComment(postId, { content }).subscribe({
       next: () => {
         this.commentInputs[postId] = '';
-        this.commentSubmitting[postId] = false;
-        // Ne pas incrémenter manuellement — le WS COMMENT_COUNT_UPDATED s'en charge
+        const post = this.posts.find(p => p.id === postId);
+        if (post) post.commentCount++;
         this.loadComments(postId);
-      },
-      error: () => { this.commentSubmitting[postId] = false; }
+      }
     });
   }
 
   deleteComment(postId: number, commentId: number): void {
     this.postService.deleteComment(postId, commentId).subscribe({
       next: () => {
-        // Ne pas décrémenter manuellement — le WS COMMENT_COUNT_UPDATED s'en charge
+        const post = this.posts.find(p => p.id === postId);
+        if (post && post.commentCount > 0) post.commentCount--;
         this.loadComments(postId);
       }
     });
@@ -736,37 +711,27 @@ export class FeedComponent implements OnInit, OnDestroy {
   }
 
   // ── REPORT ────────────────────────────────────────────────────────────────
-
-  openReport(post: Post): void {
-    this.reportTarget = { postId: post.id, postTitle: post.title };
+  openReport(userId: number, username: string): void {
+    this.reportUserId = userId;
+    this.reportUsername = username;
     this.reportReason = '';
     this.reportDescription = '';
     this.reportError = '';
-    this.reportLoading = false;
   }
 
-  closeReport(): void {
-    this.reportTarget = null;
-    this.reportLoading = false;
-  }
-
+  closeReport(): void { this.reportUserId = null; }
   selectReason(r: string): void { this.reportReason = r; this.reportError = ''; }
 
   submitReport(): void {
     if (!this.reportReason) { this.reportError = 'Sélectionnez une raison.'; return; }
-    if (!this.reportTarget) return;
+    if (!this.reportUserId) return;
     this.reportLoading = true;
-    this.reportError = '';
-
-    this.reportService.reportPost(this.reportTarget.postId, {
+    this.reportService.reportUser(this.reportUserId, {
       reason: this.reportReason,
-      description: this.reportDescription.trim() || undefined
+      description: this.reportDescription || undefined
     }).subscribe({
-      next: () => {
-        this.reportLoading = false;
-        this.closeReport();
-      },
-      error: err => {
+      next: () => { this.reportLoading = false; this.closeReport(); },
+      error: (err) => {
         this.reportLoading = false;
         this.reportError = err.error?.message || 'Erreur lors du signalement.';
       }
@@ -774,9 +739,18 @@ export class FeedComponent implements OnInit, OnDestroy {
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
-  toggleExpand(postId: number): void { this.expandedPosts[postId] = !this.expandedPosts[postId]; }
-  isOwn(post: Post): boolean { return this.currentUser?.id === post.authorId; }
-  goToProfile(userId: number): void { this.router.navigate(['/profile', userId]); }
+  toggleExpand(postId: number): void {
+    this.expandedPosts[postId] = !this.expandedPosts[postId];
+  }
+
+  isOwn(post: Post): boolean {
+    return this.currentUser?.id === post.authorId;
+  }
+
+  goToProfile(userId: number): void {
+    this.router.navigate(['/profile', userId]);
+  }
+
   getInitial(u?: string): string { return u ? u[0].toUpperCase() : '?'; }
 
   getImageUrl(url: string): string {
@@ -785,21 +759,10 @@ export class FeedComponent implements OnInit, OnDestroy {
     return `${this.apiBase}${url}`;
   }
 
-  /**
-   * Formate une date ISO (avec ou sans timezone).
-   * Le backend Spring renvoie LocalDateTime sans 'Z' → on force l'interprétation locale.
-   */
   formatDate(s: string): string {
-    if (!s) return '';
-    // Si pas de timezone info, ajouter l'offset local pour éviter le décalage UTC
-    const normalized = s.includes('T') && !s.includes('Z') && !s.includes('+') && !s.includes('-', 10)
-      ? s + 'Z'  // traiter comme UTC (le serveur est généralement en UTC)
-      : s;
-    const d = new Date(normalized);
-    if (isNaN(d.getTime())) return s;
-    const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60)    return "à l'instant";
-    if (diff < 3600)  return `il y a ${Math.floor(diff / 60)} min`;
+    const d = new Date(s), diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60) return "à l'instant";
+    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   }
