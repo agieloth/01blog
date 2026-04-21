@@ -171,6 +171,14 @@
     <div class="loading-dots"><span></span><span></span><span></span></div>
   </div>
 
+  <!-- ── Erreur de chargement ─────────────────────────────────────────────── -->
+  <div *ngIf="loadError && !loading" class="alert alert-error" style="margin-bottom:20px">
+    {{ loadError }}
+    <button class="btn btn-ghost btn-sm" style="margin-left:12px" (click)="loadAll()">
+      Réessayer
+    </button>
+  </div>
+
   <!-- ── USERS ───────────────────────────────────────────────────────────── -->
   <div *ngIf="activeTab === 'users' && !loading">
     <div class="admin-table-container">
@@ -275,6 +283,7 @@
           <tr>
             <th>Signaleur</th>
             <th>Signalé</th>
+            <th>Type</th>
             <th>Raison</th>
             <th>Description</th>
             <th>Statut</th>
@@ -284,11 +293,22 @@
         </thead>
         <tbody>
           <tr *ngIf="reports.length === 0">
-            <td colspan="7" class="admin-empty">Aucun signalement</td>
+            <td colspan="8" class="admin-empty">Aucun signalement</td>
           </tr>
           <tr *ngFor="let r of reports" [class.report-pending]="r.status === 'PENDING'">
             <td>{{ r.reporterUsername }}</td>
             <td><strong>{{ r.reportedUsername }}</strong></td>
+            <td>
+              <span class="admin-badge" *ngIf="r.postId" style="background:rgba(108,99,255,0.15);color:var(--accent-2)">
+                📝 Post
+              </span>
+              <span class="admin-badge" *ngIf="!r.postId" style="background:var(--surface-2);color:var(--muted)">
+                👤 User
+              </span>
+              <div *ngIf="r.postTitle" class="admin-report-desc" style="margin-top:4px;font-style:italic">
+                "{{ r.postTitle }}"
+              </div>
+            </td>
             <td><span class="reason-badge">{{ r.reason }}</span></td>
             <td><div class="admin-report-desc">{{ r.description || '—' }}</div></td>
             <td>

@@ -98,28 +98,33 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../shared/navbar/navbar';
 import { AdminService } from '../../core/services/admin.service';
 import { AdminUser, AdminPost, AdminReport } from '../../core/models/models';
+import { forkJoin } from 'rxjs';
 
 type AdminTab = 'users' | 'posts' | 'reports';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, NavbarComponent],
+  imports: [CommonModule, RouterModule, NavbarComponent],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
 })
 export class AdminComponent implements OnInit {
   activeTab: AdminTab = 'users';
-  users: AdminUser[]   = [];
-  posts: AdminPost[]   = [];
+  users: AdminUser[]     = [];
+  posts: AdminPost[]     = [];
   reports: AdminReport[] = [];
-  loading = false;
-  actionLoading: { [id: number]: boolean } = {}; // feedback par ligne
 
-  // Stats globales pour le header du dashboard
+  // loading = true dès le départ pour éviter un flash du contenu vide
+  loading = true;
+  loadError = '';
+
+  actionLoading: { [id: number]: boolean } = {};
+
   stats = { totalUsers: 0, totalPosts: 0, pendingReports: 0, bannedUsers: 0 };
 
   constructor(private adminService: AdminService) {}
@@ -128,23 +133,28 @@ export class AdminComponent implements OnInit {
     this.loadAll();
   }
 
-  /** Charge tout en parallèle pour calculer les stats */
   loadAll(): void {
     this.loading = true;
-    let done = 0;
-    const check = () => { if (++done === 3) { this.loading = false; this.computeStats(); } };
+    this.loadError = '';
 
-    this.adminService.getUsers().subscribe({
-      next: u => { this.users = u; check(); },
-      error: () => check()
-    });
-    this.adminService.getPosts().subscribe({
-      next: p => { this.posts = p; check(); },
-      error: () => check()
-    });
-    this.adminService.getReports().subscribe({
-      next: r => { this.reports = r; check(); },
-      error: () => check()
+    // forkJoin attend que les 3 requêtes terminent (succès ou erreur)
+    forkJoin({
+      users:   this.adminService.getUsers(),
+      posts:   this.adminService.getPosts(),
+      reports: this.adminService.getReports()
+    }).subscribe({
+      next: ({ users, posts, reports }) => {
+        this.users   = users;
+        this.posts   = posts;
+        this.reports = reports;
+        this.loading = false;
+        this.computeStats();
+      },
+      error: (err) => {
+        this.loading   = false;
+        this.loadError = 'Erreur lors du chargement des données. Vérifiez votre connexion.';
+        console.error('Admin load error:', err);
+      }
     });
   }
 
@@ -164,7 +174,7 @@ export class AdminComponent implements OnInit {
   // ── Users ──────────────────────────────────────────────────────────────────
 
   toggleBan(userId: number): void {
-    const user = this.users.find(u => u.id === userId);
+    const user   = this.users.find(u => u.id === userId);
     const action = user?.banned ? 'débannir' : 'bannir';
     if (!confirm(`Êtes-vous sûr de vouloir ${action} cet utilisateur ?`)) return;
 
