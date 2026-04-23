@@ -914,7 +914,12 @@ input:focus, textarea:focus, select:focus {
 .admin-btn-delete  { background: var(--danger-muted); color: var(--danger); }
 .admin-btn-review  { background: rgba(52,211,153,0.1); color: var(--success); }
 .admin-btn-dismiss { background: var(--surface-2); color: var(--muted); }
+.admin-btn-hide    { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .admin-btn:hover   { opacity: 0.8; }
+
+/* Post masqué dans le tableau admin */
+.post-hidden td    { opacity: 0.55; }
+.hidden-badge      { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
 
 /* ── NAVBAR SCSS (inline here, sourced by navbar.scss) ────── */
 

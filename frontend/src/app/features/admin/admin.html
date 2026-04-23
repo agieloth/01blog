@@ -385,19 +385,31 @@
           <tr *ngIf="posts.length === 0">
             <td colspan="7" class="admin-empty">Aucun post</td>
           </tr>
-          <tr *ngFor="let p of posts">
-            <td><strong>{{ p.title }}</strong></td>
+          <tr *ngFor="let p of posts" [class.post-hidden]="p.hidden">
+            <td>
+              <strong>{{ p.title }}</strong>
+              <span class="admin-badge hidden-badge" *ngIf="p.hidden" style="margin-left:6px">🙈 Masqué</span>
+            </td>
             <td>{{ p.author }}</td>
             <td><div class="admin-post-preview">{{ p.content }}</div></td>
             <td>{{ p.likeCount }}</td>
             <td>{{ p.commentCount }}</td>
             <td>{{ formatDate(p.createdAt) }}</td>
             <td>
-              <button class="admin-btn admin-btn-delete"
-                [disabled]="actionLoading[p.id]"
-                (click)="openDeletePostModal(p)">
-                {{ actionLoading[p.id] ? '…' : 'Supprimer' }}
-              </button>
+              <div class="admin-actions">
+                <button class="admin-btn"
+                  [ngClass]="p.hidden ? 'admin-btn-unban' : 'admin-btn-hide'"
+                  [disabled]="actionLoading[p.id]"
+                  (click)="openHidePostModal(p)">
+                  <span *ngIf="actionLoading[p.id]">…</span>
+                  <span *ngIf="!actionLoading[p.id]">{{ p.hidden ? 'Afficher' : 'Masquer' }}</span>
+                </button>
+                <button class="admin-btn admin-btn-delete"
+                  [disabled]="actionLoading[p.id]"
+                  (click)="openDeletePostModal(p)">
+                  {{ actionLoading[p.id] ? '…' : 'Supprimer' }}
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -497,6 +509,35 @@
       <button class="btn btn-ghost btn-sm" (click)="closeDeletePostModal()" [disabled]="deleteAdminLoading">Annuler</button>
       <button class="btn btn-sm btn-delete" (click)="confirmDeletePost()" [disabled]="deleteAdminLoading">
         {{ deleteAdminLoading ? 'Suppression…' : 'Supprimer définitivement' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal : masquer / afficher un post ── -->
+<div class="modal-overlay" *ngIf="hidingPostId" (click)="closeHidePostModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon" [ngClass]="hidingPostIsHidden ? 'modal-icon--edit' : 'modal-icon--delete'">
+      {{ hidingPostIsHidden ? '👁️' : '🙈' }}
+    </div>
+    <div class="modal-title">
+      {{ hidingPostIsHidden ? 'Afficher' : 'Masquer' }} ce post ?
+    </div>
+    <div class="modal-text" *ngIf="!hidingPostIsHidden">
+      Le post <strong>« {{ hidingPostTitle }} »</strong> sera masqué des utilisateurs.
+      Il restera en base de données et pourra être réaffiché à tout moment.
+    </div>
+    <div class="modal-text" *ngIf="hidingPostIsHidden">
+      Le post <strong>« {{ hidingPostTitle }} »</strong> redeviendra visible pour tous les utilisateurs.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" (click)="closeHidePostModal()" [disabled]="hidePostLoading">Annuler</button>
+      <button class="btn btn-sm"
+        [class.btn-delete]="!hidingPostIsHidden"
+        [class.btn-primary]="hidingPostIsHidden"
+        (click)="confirmToggleHidePost()"
+        [disabled]="hidePostLoading">
+        {{ hidePostLoading ? 'En cours…' : (hidingPostIsHidden ? 'Afficher le post' : 'Masquer le post') }}
       </button>
     </div>
   </div>

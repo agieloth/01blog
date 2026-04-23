@@ -100,6 +100,18 @@ public class AdminService {
         postRepository.delete(post);
     }
 
+    /**
+     * Toggle la visibilité d'un post (masquer / afficher).
+     * Un post masqué reste en base mais n'est plus visible des utilisateurs normaux.
+     */
+    public Post toggleHidePost(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+        post.setHidden(!post.getHidden());
+        return postRepository.save(post);
+    }
+
     // ══════════════════════════════════════════════════════════════════
     // REPORTS
     // ══════════════════════════════════════════════════════════════════

@@ -232,6 +232,12 @@ export class AdminComponent implements OnInit {
   deletingAdminPostTitle = '';
   deleteAdminLoading = false;
 
+  // Modal masquer / afficher un post
+  hidingPostId: number | null = null;
+  hidingPostTitle = '';
+  hidingPostIsHidden = false; // true = actuellement masqué → on va afficher
+  hidePostLoading = false;
+
   // Modal statut de signalement
   pendingReportId: number | null = null;
   pendingReportAction: 'REVIEWED' | 'DISMISSED' | null = null;
@@ -348,6 +354,44 @@ export class AdminComponent implements OnInit {
         this.deleteAdminLoading = false;
         this.actionLoading[postId] = false;
         this.closeDeletePostModal();
+      }
+    });
+  }
+
+  // ── HIDE / SHOW POST ─────────────────────────────────────────────────────
+
+  openHidePostModal(post: AdminPost): void {
+    this.hidingPostId = post.id;
+    this.hidingPostTitle = post.title;
+    this.hidingPostIsHidden = post.hidden;
+  }
+
+  closeHidePostModal(): void {
+    this.hidingPostId = null;
+    this.hidingPostTitle = '';
+    this.hidingPostIsHidden = false;
+  }
+
+  confirmToggleHidePost(): void {
+    if (!this.hidingPostId) return;
+    const postId = this.hidingPostId;
+    this.hidePostLoading = true;
+    this.actionLoading[postId] = true;
+
+    this.adminService.toggleHidePost(postId).subscribe({
+      next: (res) => {
+        const p = this.posts.find(p => p.id === postId);
+        if (p) {
+          p.hidden = res.hidden;
+        }
+        this.hidePostLoading = false;
+        this.actionLoading[postId] = false;
+        this.closeHidePostModal();
+      },
+      error: () => {
+        this.hidePostLoading = false;
+        this.actionLoading[postId] = false;
+        this.closeHidePostModal();
       }
     });
   }

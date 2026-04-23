@@ -91,6 +91,7 @@ public class AdminController {
             postMap.put("author", post.getAuthor().getUsername());
             postMap.put("likeCount", adminService.getPostLikeCount(post.getId()));
             postMap.put("commentCount", adminService.getPostCommentCount(post.getId()));
+            postMap.put("hidden", post.getHidden());
             postMap.put("createdAt", post.getCreatedAt());
             return postMap;
         }).collect(Collectors.toList());
@@ -106,6 +107,22 @@ public class AdminController {
     public ResponseEntity<?> deletePost(@PathVariable Long id) {
         adminService.deletePost(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * PATCH /api/admin/posts/{id}/hide
+     * Masquer ou afficher un post (toggle)
+     */
+    @PatchMapping("/posts/{id}/hide")
+    public ResponseEntity<?> toggleHidePost(@PathVariable Long id) {
+        Post post = adminService.toggleHidePost(id);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", post.getId());
+        response.put("title", post.getTitle());
+        response.put("hidden", post.getHidden());
+
+        return ResponseEntity.ok(response);
     }
 
     // ═══════════════════════════════════════════════════

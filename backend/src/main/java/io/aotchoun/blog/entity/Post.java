@@ -51,6 +51,10 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Like> likes = new ArrayList<>();
 
+    // Champ pour masquer un post (admin only) sans le supprimer
+    @Column(nullable = false)
+    private Boolean hidden = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -95,6 +99,7 @@ public class Post {
     public String getImageUrls() { return imageUrls; }
     public List<Comment> getComments() { return comments; }
     public List<Like> getLikes() { return likes; }
+    public Boolean getHidden() { return hidden; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -109,6 +114,7 @@ public class Post {
     public void setImageUrls(String imageUrls) { this.imageUrls = imageUrls; }
     public void setComments(List<Comment> comments) { this.comments = comments; }
     public void setLikes(List<Like> likes) { this.likes = likes; }
+    public void setHidden(Boolean hidden) { this.hidden = hidden; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

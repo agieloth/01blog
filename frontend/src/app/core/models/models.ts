@@ -85,6 +85,7 @@ export interface AdminPost {
   author: string;
   likeCount: number;
   commentCount: number;
+  hidden: boolean;
   createdAt: string;
 }
 

@@ -96,7 +96,8 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostResponse> getAllPosts(String username) {
-        return postRepository.findAllByOrderByCreatedAtDesc()
+        // Les utilisateurs normaux ne voient pas les posts masqués par l'admin
+        return postRepository.findByHiddenFalseOrderByCreatedAtDesc()
                 .stream()
                 .map(post -> enrich(post, username))
                 .collect(Collectors.toList());
@@ -106,6 +107,10 @@ public class PostService {
     public PostResponse getPostById(Long id, String username) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+        // Un post masqué n'est pas accessible directement par un user normal
+        if (Boolean.TRUE.equals(post.getHidden())) {
+            throw new ResourceNotFoundException("Post not found with id: " + id);
+        }
         return enrich(post, username);
     }
 
@@ -114,7 +119,8 @@ public class PostService {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
-        return postRepository.findByAuthorIdOrderByCreatedAtDesc(userId)
+        // On exclut également les posts masqués du profil public
+        return postRepository.findByAuthorIdAndHiddenFalseOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(post -> enrich(post, username))
                 .collect(Collectors.toList());
