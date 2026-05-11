@@ -31,7 +31,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
-    // Lire l'état courant immédiatement (BehaviorSubject replay la dernière valeur)
     this.wsConnected = this.wsService.isConnected;
 
     this.subs.push(
@@ -83,35 +82,70 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
     }
     this.notifOpen = false;
-    if (notif.type === 'NEW_FOLLOWER') {
-      this.router.navigate(['/profile', notif.relatedEntityId]);
-    } else {
-      this.router.navigate(['/feed']);
+
+    switch (notif.type) {
+      case 'NEW_FOLLOWER':
+        // relatedEntityId = userId du nouveau follower → aller sur son profil
+        this.router.navigate(['/profile', notif.relatedEntityId]);
+        break;
+      case 'NEW_POST':
+        // relatedEntityId = postId → aller sur le feed et scroller vers le post
+        this.router.navigate(['/feed']).then(() => {
+          setTimeout(() => {
+            const el = document.getElementById(`post-${notif.relatedEntityId}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 400);
+        });
+        break;
+      case 'POST_LIKED':
+      case 'POST_COMMENTED':
+        // relatedEntityId = postId → aller sur le feed et scroller vers le post
+        this.router.navigate(['/feed']).then(() => {
+          setTimeout(() => {
+            const el = document.getElementById(`post-${notif.relatedEntityId}`);
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 400);
+        });
+        break;
+      default:
+        this.router.navigate(['/feed']);
     }
   }
 
   getNotifIcon(type: string): string {
     switch (type) {
-      case 'POST_LIKED': return '❤️';
+      case 'POST_LIKED':    return '❤️';
       case 'POST_COMMENTED': return '💬';
-      case 'NEW_FOLLOWER': return '👤';
-      default: return '🔔';
+      case 'NEW_FOLLOWER':  return '👤';
+      case 'NEW_POST':      return '📝';
+      default:              return '🔔';
     }
   }
 
   getNotifClass(type: string): string {
     switch (type) {
-      case 'POST_LIKED': return 'like';
+      case 'POST_LIKED':    return 'like';
       case 'POST_COMMENTED': return 'comment';
-      case 'NEW_FOLLOWER': return 'follow';
-      default: return '';
+      case 'NEW_FOLLOWER':  return 'follow';
+      case 'NEW_POST':      return 'new-post';
+      default:              return '';
     }
   }
 
+  /**
+   * Formate une date ISO renvoyée par Spring (LocalDateTime sans timezone).
+   * On ajoute 'Z' pour forcer l'interprétation UTC.
+   */
   formatDate(s: string): string {
-    const d = new Date(s), diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return "à l'instant";
-    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+    if (!s) return '';
+    const normalized = s.includes('T') && !s.includes('Z') && !s.includes('+') && !s.includes('-', 10)
+      ? s + 'Z'
+      : s;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return s;
+    const diff = (Date.now() - d.getTime()) / 1000;
+    if (diff < 60)    return "à l'instant";
+    if (diff < 3600)  return `il y a ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
   }
@@ -121,9 +155,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   logout(): void { this.authService.logout(); }
+
   goToProfile(): void {
     if (this.currentUser) this.router.navigate(['/profile', this.currentUser.id]);
   }
+
   isAdmin(): boolean { return this.authService.isAdmin(); }
 
   @HostListener('document:click', ['$event'])

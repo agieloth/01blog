@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 
 export interface NotificationResponse {
   id: number;
-  type: 'NEW_FOLLOWER' | 'POST_LIKED' | 'POST_COMMENTED';
+  type: 'NEW_FOLLOWER' | 'POST_LIKED' | 'POST_COMMENTED' | 'NEW_POST';
   message: string;
   relatedEntityId: number;
   actorUsername: string;

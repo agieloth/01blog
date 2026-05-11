@@ -196,7 +196,8 @@ input, textarea, select, button { font-family: inherit; font-size: inherit; }
 }
 .notif-icon.like   { background: rgba(255,77,109,0.15); }
 .notif-icon.comment { background: rgba(108,99,255,0.15); }
-.notif-icon.follow  { background: rgba(52,211,153,0.15); }
+.notif-icon.follow    { background: rgba(52,211,153,0.15); }
+.notif-icon.new-post  { background: rgba(108,99,255,0.15); color: var(--accent-2); }
 
 .notif-content { flex: 1; min-width: 0; }
 .notif-message { font-size: 0.875rem; color: var(--text); line-height: 1.4; }
@@ -465,6 +466,8 @@ input:focus, textarea:focus, select:focus {
   border-radius: var(--radius);
   padding: 22px 24px;
   transition: border-color var(--transition), box-shadow var(--transition);
+  min-width: 0;        /* évite que le contenu force la largeur du card */
+  overflow: hidden;    /* coupe proprement tout débordement               */
 }
 .post-card:hover {
   border-color: var(--border-2);
@@ -520,6 +523,8 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
   transition: color var(--transition);
   letter-spacing: -0.3px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .post-title:hover { color: var(--accent-2); }
 
@@ -528,10 +533,16 @@ input:focus, textarea:focus, select:focus {
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 14px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .post-full {
   color: var(--text-2); font-size: 0.9rem; line-height: 1.65;
-  margin-bottom: 14px; white-space: pre-wrap;
+  margin-bottom: 14px;
+  white-space: pre-wrap;      /* respecte les sauts de ligne */
+  word-break: break-word;     /* coupe les mots trop longs   */
+  overflow-wrap: break-word;  /* fallback cross-browser       */
+  min-width: 0;               /* flex context fix             */
 }
 
 /* post images */
@@ -582,13 +593,7 @@ input:focus, textarea:focus, select:focus {
 }
 .read-more:hover { color: var(--text); }
 
-.report-btn-small {
-  background: none; border: none; cursor: pointer;
-  color: var(--muted); font-size: 0.85rem;
-  padding: 4px 6px; border-radius: var(--radius-sm);
-  transition: all var(--transition);
-}
-.report-btn-small:hover { color: #f59e0b; background: rgba(245,158,11,0.1); }
+
 
 /* ── COMMENTS ────────────────────────────────────────────── */
 .comments-section {
@@ -624,7 +629,12 @@ input:focus, textarea:focus, select:focus {
 }
 .comment-author { font-weight: 600; font-size: 0.8rem; color: var(--text); }
 .comment-date { font-size: 0.72rem; color: var(--muted); }
-.comment-text { font-size: 0.875rem; color: var(--text-2); white-space: pre-wrap; }
+.comment-text {
+  font-size: 0.875rem; color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
 .delete-comment-btn {
   background: none; border: none; cursor: pointer;
@@ -904,7 +914,12 @@ input:focus, textarea:focus, select:focus {
 .admin-btn-delete  { background: var(--danger-muted); color: var(--danger); }
 .admin-btn-review  { background: rgba(52,211,153,0.1); color: var(--success); }
 .admin-btn-dismiss { background: var(--surface-2); color: var(--muted); }
+.admin-btn-hide    { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .admin-btn:hover   { opacity: 0.8; }
+
+/* Post masqué dans le tableau admin */
+.post-hidden td    { opacity: 0.55; }
+.hidden-badge      { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
 
 /* ── NAVBAR SCSS (inline here, sourced by navbar.scss) ────── */
 
@@ -912,10 +927,226 @@ input:focus, textarea:focus, select:focus {
 @media (max-width: 640px) {
   .navbar { padding: 0 16px; }
   .navbar-username { display: none; }
+  .notif-dropdown { width: 290px; right: -50px; }
+
   .app-body { padding: 20px 14px 60px; }
+
   .post-card { padding: 16px; }
+  .post-images.double,
+  .post-images.triple { grid-template-columns: 1fr; }
+  .post-images.double .post-image,
+  .post-images.triple .post-image { height: 200px; }
+  .post-footer { flex-wrap: wrap; gap: 8px; }
+  .report-menu { margin-left: 0; width: 100%; justify-content: flex-end; }
+
   .profile-header { flex-direction: column; align-items: center; text-align: center; }
   .profile-stats { justify-content: center; }
-  .admin-table { font-size: 0.8rem; }
-  .notif-dropdown { width: 300px; right: -60px; }
+  .profile-actions { justify-content: center; }
+
+  .admin-body { padding: 16px 10px; }
+  .admin-tabs { flex-wrap: wrap; }
+  .admin-tab { flex: 1; text-align: center; padding: 8px 10px; font-size: 0.8rem; }
+  .admin-table { font-size: 0.78rem; }
+  .admin-table th, .admin-table td { padding: 10px 8px; }
+  .admin-table th:nth-child(n+5),
+  .admin-table td:nth-child(n+5) { display: none; } /* cache les colonnes non essentielles */
+
+  .modal { padding: 24px 18px; }
+  .report-reasons { gap: 6px; }
+  .report-reason { font-size: 0.78rem; padding: 6px 10px; }
+
+  .auth-card { padding: 28px 20px; }
+}
+
+@media (max-width: 400px) {
+  .post-card { padding: 12px; }
+  .navbar-brand { font-size: 1.1rem; }
+}
+
+/* ── REPORT MENU (deux boutons côte à côte dans le footer du post) ─────────── */
+.report-menu {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.report-btn-small {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: 4px 8px;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.report-btn-small:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* ── ADMIN ANALYTICS CARDS ──────────────────────────────────── */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.admin-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  text-align: center;
+  transition: border-color var(--transition);
+}
+.admin-stat-card:hover { border-color: var(--border-2); }
+.admin-stat-card.warn  { border-color: rgba(245,158,11,0.4); }
+.admin-stat-card.danger { border-color: rgba(255,77,109,0.4); }
+
+.admin-stat-value {
+  font-family: var(--font-head);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.admin-stat-card.warn  .admin-stat-value { color: #f59e0b; }
+.admin-stat-card.danger .admin-stat-value { color: var(--danger); }
+
+.admin-stat-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* tab count badge */
+.tab-count {
+  display: inline-block;
+  background: var(--surface-2);
+  border-radius: 99px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  margin-left: 4px;
+  color: var(--muted);
+}
+.tab-count.warn { background: rgba(245,158,11,0.2); color: #f59e0b; }
+
+/* report pending row highlight */
+.report-pending { background: rgba(245,158,11,0.04) !important; }
+
+/* reason badge */
+.reason-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* text-danger utility */
+.text-danger { color: var(--danger); font-weight: 700; }
+
+/* admin stats responsive */
+@media (max-width: 640px) {
+  .admin-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .admin-stat-value { font-size: 1.5rem; }
+}
+@media (max-width: 400px) {
+  .admin-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── À ajouter à la fin de styles.scss ──────────────────── */
+
+/* Modal icon */
+.modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin: 0 auto 16px;
+}
+.modal-icon--edit {
+  background: var(--accent-glow);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+.modal-icon--delete {
+  background: var(--danger-muted);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+/* Admin stats cards */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.admin-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  text-align: center;
+  &.warn  { border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.06); }
+  &.danger { border-color: rgba(255, 77, 109, 0.4); background: var(--danger-muted); }
+}
+.admin-stat-value {
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.admin-stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tab count badge */
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
+  font-family: var(--font-body);
+  &.warn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+}
+
+/* Report row highlight */
+.report-pending td {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+/* Signalements reçus en rouge si > 0 */
+.text-danger {
+  color: var(--danger);
+  font-weight: 600;
 }

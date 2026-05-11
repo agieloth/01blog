@@ -85,6 +85,7 @@ export interface AdminPost {
   author: string;
   likeCount: number;
   commentCount: number;
+  hidden: boolean;
   createdAt: string;
 }
 
@@ -92,6 +93,8 @@ export interface AdminReport {
   id: number;
   reporterUsername: string;
   reportedUsername: string;
+  postId: number | null;      // null si signalement d'un user
+  postTitle: string | null;   // null si signalement d'un user
   reason: string;
   description: string;
   status: string;

@@ -36,7 +36,9 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     this._currentUser$.next(null);
-    this.router.navigate(['/login']);
+    // FIX : naviguer vers /login sans conserver l'historique
+    // (évite le retour en arrière vers une page authentifiée après logout)
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   getToken(): string | null {
@@ -66,7 +68,20 @@ export class AuthService {
   private loadUser(): User | null {
     try {
       const raw = localStorage.getItem('user');
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+      if (!raw) return null;
+      const user = JSON.parse(raw) as User;
+      // FIX : validation basique de la structure pour détecter les données corrompues
+      if (!user || typeof user.id !== 'number' || !user.username || !user.role) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        return null;
+      }
+      return user;
+    } catch {
+      // JSON corrompu → nettoyer le localStorage
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      return null;
+    }
   }
 }

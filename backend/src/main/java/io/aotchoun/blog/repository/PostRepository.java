@@ -32,6 +32,17 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * SQL généré : SELECT * FROM posts ORDER BY created_at DESC
      */
     List<Post> findAllByOrderByCreatedAtDesc();
-    long countByAuthorId(Long authorId); 
-    // long countByUserId(Long userId);
+
+    /**
+     * Récupère uniquement les posts non masqués, triés du plus récent au plus ancien
+     * Utilisé pour le feed public (les utilisateurs normaux ne voient pas les posts masqués)
+     */
+    List<Post> findByHiddenFalseOrderByCreatedAtDesc();
+
+    /**
+     * Récupère les posts non masqués d'un auteur donné
+     */
+    List<Post> findByAuthorIdAndHiddenFalseOrderByCreatedAtDesc(Long authorId);
+
+    long countByAuthorId(Long authorId);
 }

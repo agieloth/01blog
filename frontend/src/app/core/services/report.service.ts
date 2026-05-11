@@ -14,6 +14,12 @@ export class ReportService {
 
   constructor(private http: HttpClient) {}
 
+  /** Signale un post → POST /api/reports/post/:postId */
+  reportPost(postId: number, request: CreateReportRequest): Observable<any> {
+    return this.http.post(`${this.apiUrl}/post/${postId}`, request);
+  }
+
+  /** Signale un utilisateur → POST /api/reports/user/:userId */
   reportUser(userId: number, request: CreateReportRequest): Observable<any> {
     return this.http.post(`${this.apiUrl}/user/${userId}`, request);
   }

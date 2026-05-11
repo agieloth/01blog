@@ -30,6 +30,12 @@ export class AdminService {
     return this.http.delete<void>(`${this.apiUrl}/posts/${postId}`);
   }
 
+  toggleHidePost(postId: number): Observable<{ id: number; title: string; hidden: boolean }> {
+    return this.http.patch<{ id: number; title: string; hidden: boolean }>(
+      `${this.apiUrl}/posts/${postId}/hide`, {}
+    );
+  }
+
   // Reports
   getReports(): Observable<AdminReport[]> {
     return this.http.get<AdminReport[]>(`${this.apiUrl}/reports`);
