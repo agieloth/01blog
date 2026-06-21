@@ -1,4 +1,4 @@
-<div class="auth-page">
+<!-- <div class="auth-page">
   <div class="auth-card">
     <div class="auth-brand">Student<span>Hub</span></div>
     <div class="auth-tagline">Rejoins la communauté</div>
@@ -29,6 +29,48 @@
     </div>
 
     <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px"
+      (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Création…' : 'Créer mon compte' }}
+    </button>
+
+    <div class="auth-footer">
+      Déjà un compte ? <a routerLink="/login">Se connecter</a>
+    </div>
+  </div>
+</div> -->
+
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">Student<span>Hub</span></div>
+    <div class="auth-tagline">Rejoins la communauté</div>
+
+    <div class="auth-title">Créer un compte</div>
+
+    <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Nom d'utilisateur</mat-label>
+      <input matInput type="text" [(ngModel)]="username" placeholder="mon_pseudo" autocomplete="username" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" [(ngModel)]="email" placeholder="moi@example.com" autocomplete="email" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Mot de passe</mat-label>
+      <input matInput type="password" [(ngModel)]="password" placeholder="Min. 6 caractères" autocomplete="new-password" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Confirmer le mot de passe</mat-label>
+      <input matInput type="password" [(ngModel)]="confirmPassword" placeholder="••••••••"
+        autocomplete="new-password" (keydown.enter)="submit()" />
+    </mat-form-field>
+
+    <button mat-flat-button class="btn-mat-primary"
       (click)="submit()" [disabled]="loading">
       {{ loading ? 'Création…' : 'Créer mon compte' }}
     </button>

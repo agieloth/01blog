@@ -80,13 +80,14 @@
 
         <div class="post-title" (click)="toggleExpand(post.id)">{{ post.title }}</div>
 
+        <div class="post-preview" *ngIf="!toggleExpanded[post.id]">{{ post.content }}</div>
+
         <div class="post-images"
           *ngIf="post.imageUrls && post.imageUrls.length > 0"
           [ngClass]="{'single': post.imageUrls.length === 1, 'double': post.imageUrls.length === 2, 'triple': post.imageUrls.length === 3}">
           <img *ngFor="let url of post.imageUrls" [src]="getImageUrl(url)" [alt]="post.title" class="post-image" />
         </div>
 
-        <div class="post-preview" *ngIf="!toggleExpanded[post.id]">{{ post.content }}</div>
         <div class="post-full" *ngIf="toggleExpanded[post.id]">{{ post.content }}</div>
 
         <div class="post-footer">

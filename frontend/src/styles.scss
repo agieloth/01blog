@@ -3,7 +3,115 @@
    Matching the backend index.html design exactly
    ============================================================ */
 
+/* ── ANGULAR MATERIAL IMPORT & THEME ────────────────────── */
+/* @use doit être la toute première règle du fichier (avant tout
+   @import, commentaire CSS classique ou autre règle) */
+
+@use '@angular/material' as mat;
+
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+@include mat.core();
+
+/* Thème dark custom aligné sur les CSS vars du projet */
+$studenthub-theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$violet-palette,
+    tertiary: mat.$violet-palette,
+  ),
+  density: (
+    scale: -1,
+  ),
+));
+
+// html {
+//   @include mat.all-component-themes($studenthub-theme);
+// }
+
+/* Override Material pour s'aligner sur le design system existant */
+.mat-mdc-form-field {
+  width: 100%;
+  margin-bottom: 8px;
+
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--border) !important;
+  }
+
+  &:hover .mdc-notched-outline__leading,
+  &:hover .mdc-notched-outline__notch,
+  &:hover .mdc-notched-outline__trailing {
+    border-color: var(--border-2) !important;
+  }
+
+  &.mat-focused .mdc-notched-outline__leading,
+  &.mat-focused .mdc-notched-outline__notch,
+  &.mat-focused .mdc-notched-outline__trailing {
+    border-color: var(--accent) !important;
+    border-width: 2px !important;
+  }
+
+  .mat-mdc-form-field-flex {
+    background: var(--bg) !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .mdc-floating-label,
+  .mat-mdc-floating-label {
+    color: var(--muted) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.875rem !important;
+  }
+
+  &.mat-focused .mdc-floating-label,
+  &.mat-focused .mat-mdc-floating-label {
+    color: var(--accent) !important;
+  }
+
+  .mat-mdc-input-element {
+    color: var(--text) !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.9rem !important;
+    caret-color: var(--accent) !important;
+  }
+
+  .mat-mdc-input-element::placeholder {
+    color: var(--muted) !important;
+    opacity: 0.6 !important;
+  }
+}
+
+/* Bouton Material aligné sur le design system */
+.btn-mat-primary {
+  width: 100% !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  font-family: var(--font-head) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 10px 20px !important;
+  height: 44px !important;
+  margin-top: 8px !important;
+  letter-spacing: 0.2px !important;
+
+  &:hover:not([disabled]) {
+    background: var(--accent-2) !important;
+    box-shadow: 0 0 16px var(--accent-glow) !important;
+  }
+
+  &[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+}
+
+/* Champ full-width helper */
+.mat-field-full {
+  width: 100%;
+}
 
 /* ── CSS VARIABLES ───────────────────────────────────────── */
 :root {
@@ -40,7 +148,21 @@
 /* ── RESET ───────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+$theme: mat.define-theme((
+  color: (
+    theme-type: dark,
+    primary: mat.$violet-palette,
+  ),
+  typography: (
+    use-system-variables: true,
+  ),
+));
+
+html { 
+  @include mat.all-component-themes($studenthub-theme);
+  @include mat.all-component-themes($theme);
+  scroll-behavior: smooth; 
+}
 
 body {
   background: var(--bg);
@@ -1149,4 +1271,47 @@ input:focus, textarea:focus, select:focus {
 .text-danger {
   color: var(--danger);
   font-weight: 600;
+}
+
+/* ── MATERIAL SNACKBAR / TOAST ───────────────────────────── */
+.mdc-snackbar__surface {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.mdc-snackbar__label {
+  color: var(--text) !important;
+  font-family: var(--font-body) !important;
+  font-size: 0.875rem !important;
+}
+
+.mdc-button__label {
+  color: var(--muted) !important;
+  font-size: 0.8rem !important;
+}
+
+.toast-success .mdc-snackbar__surface {
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+}
+.toast-success .mdc-snackbar__label {
+  color: var(--success) !important;
+}
+
+.toast-error .mdc-snackbar__surface {
+  border-color: rgba(255, 77, 109, 0.4) !important;
+  background: var(--danger-muted) !important;
+}
+.toast-error .mdc-snackbar__label {
+  color: var(--danger) !important;
+}
+
+.toast-info .mdc-snackbar__surface {
+  border-color: rgba(108, 99, 255, 0.4) !important;
+  background: var(--accent-glow) !important;
+}
+.toast-info .mdc-snackbar__label {
+  color: var(--accent-2) !important;
 }
