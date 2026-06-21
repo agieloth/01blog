@@ -196,7 +196,13 @@ import { environment } from '../../../environments/environment';
 import { FormsModule } from '@angular/forms';
 
 
-
+interface CommentItem {
+  id: number;
+  content: string;
+  authorId: number;
+  authorUsername: string;
+  createdAt: string;
+}
 @Component({
 
   selector: 'app-profile',
@@ -246,6 +252,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
   reportLoading = false;
 
   showReport = false;
+
+  // Delete comment
+  pendingDeleteCommentPostId: number | null = null;
+  pendingDeleteCommentId: number | null = null;
+
+  // Comments
+  openComments: { [id: number]: boolean } = {};
+  comments: { [id: number]: CommentItem[] } = {};
+  commentInputs: { [id: number]: string } = {};
+  commentsLoading: { [id: number]: boolean } = {};
 
 
 
@@ -311,6 +327,26 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     );
 
+    // this.subs.push(
+
+      // this.wsService.postEvents.subscribe(event => {
+      //     if (event.type === 'POST_CREATED') {
+      //       if (event.data.authorId !== this.currentUser?.id) {
+      //         this.posts.unshift(event.data);
+      //       }
+      //     } else if (event.type === 'POST_UPDATED') {
+      //       const idx = this.posts.findIndex(p => p.id === event.data.id);
+      //       if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
+      //     } else if (event.type === 'POST_DELETED') {
+      //       this.posts = this.posts.filter(p => p.id !== event.data);
+      //     } else if (event.type === 'COMMENT_COUNT_UPDATED') {
+      //       const post = this.posts.find(p => p.id === event.data.postId);
+      //       if (post) post.commentCount = event.data.count;
+      //     }
+      //   })
+
+    // );
+
 
 
     this.subs.push(
@@ -369,7 +405,89 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   }
 
+  // ── LIKES ─────────────────────────────────────────────────────────────────
 
+  toggleLike(postId: number): void {
+    this.postService.toggleLike(postId).subscribe({
+      next: data => {
+        const post = this.posts.find(p => p.id === postId);
+        if (post) {
+          post.likeCount = data.likeCount;
+          post.likedByCurrentUser = data.likedByCurrentUser;
+        }
+      }
+    });
+  }
+
+  // ── COMMENTS ──────────────────────────────────────────────────────────────
+
+  toggleComments(postId: number): void {
+    this.openComments[postId] = !this.openComments[postId];
+    if (this.openComments[postId] && !this.comments[postId]) {
+      this.loadComments(postId);
+      this.wsService.subscribeToComments(postId).subscribe(event => {
+        if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
+          this.loadComments(postId);
+        }
+      });
+    }
+  }
+
+  loadComments(postId: number): void {
+    this.commentsLoading[postId] = true;
+    this.postService.getComments(postId).subscribe({
+      next: data => { this.comments[postId] = data as CommentItem[]; this.commentsLoading[postId] = false; },
+      error: () => { this.commentsLoading[postId] = false; }
+    });
+  }
+
+  submitComment(postId: number): void {
+    const content = (this.commentInputs[postId] || '').trim();
+    if (!content) return;
+    this.postService.addComment(postId, { content }).subscribe({
+      next: () => {
+        this.commentInputs[postId] = '';
+        const post = this.posts.find(p => p.id === postId);
+        if (post) post.commentCount++;
+        this.loadComments(postId);
+      }
+    });
+  }
+
+  // Ouvre la confirmation avant de supprimer un commentaire
+  requestDeleteComment(postId: number, commentId: number): void {
+    this.pendingDeleteCommentPostId = postId;
+    this.pendingDeleteCommentId = commentId;
+  }
+
+  cancelDeleteComment(): void {
+    this.pendingDeleteCommentPostId = null;
+    this.pendingDeleteCommentId = null;
+  }
+
+  confirmDeleteComment(): void {
+    if (!this.pendingDeleteCommentPostId || !this.pendingDeleteCommentId) return;
+    const postId = this.pendingDeleteCommentPostId;
+    const commentId = this.pendingDeleteCommentId;
+    this.pendingDeleteCommentPostId = null;
+    this.pendingDeleteCommentId = null;
+
+    this.postService.deleteComment(postId, commentId).subscribe({
+      next: () => {
+        const post = this.posts.find(p => p.id === postId);
+        if (post && post.commentCount > 0) post.commentCount--;
+        this.loadComments(postId);
+        this.toast.success('Commentaire supprimé.');
+      },
+      error: () => {
+        this.toast.error('Erreur lors de la suppression du commentaire.');
+      }
+    });
+  }
+
+  onCommentKey(e: KeyboardEvent, postId: number): void {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.submitComment(postId); }
+  }
 
   // ── FOLLOW ────────────────────────────────────────────────────────────────
 

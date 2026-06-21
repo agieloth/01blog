@@ -38,12 +38,14 @@
           <!-- Actions si pas son propre profil -->
           <div class="profile-actions" *ngIf="!isOwn && isAuthenticated">
             <!-- requestFollow() au lieu de toggleFollow() -->
-            <button class="btn-follow" [class.following]="stats.followedByCurrentUser" (click)="requestFollow()">
+            <button
+              class="btn-follow"
+              [class.following]="stats.followedByCurrentUser"
+              (click)="requestFollow()"
+            >
               {{ stats.followedByCurrentUser ? 'Abonné' : "S'abonner" }}
             </button>
-            <button class="report-btn" (click)="openReport()">
-              ⚠️ Signaler
-            </button>
+            <button class="report-btn" (click)="openReport()">⚠️ Signaler</button>
           </div>
         </div>
       </div>
@@ -67,9 +69,11 @@
       <article class="post-card" *ngFor="let post of posts">
         <div class="post-header">
           <div class="post-meta">
-            <div class="post-avatar" [class.own]="isOwnPost(post)">{{ getInitial(post.authorUsername) }}</div>
+            <div class="post-avatar" [class.own]="isOwnPost(post)">
+              {{ getInitial(post.authorUsername) }}
+            </div>
             <div>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div style="display: flex; align-items: center; gap: 6px">
                 <span class="post-author">{{ post.authorUsername }}</span>
                 <span class="own-badge" *ngIf="isOwnPost(post)">Moi</span>
               </div>
@@ -82,20 +86,95 @@
 
         <div class="post-preview" *ngIf="!toggleExpanded[post.id]">{{ post.content }}</div>
 
-        <div class="post-images"
+        <div
+          class="post-images"
           *ngIf="post.imageUrls && post.imageUrls.length > 0"
-          [ngClass]="{'single': post.imageUrls.length === 1, 'double': post.imageUrls.length === 2, 'triple': post.imageUrls.length === 3}">
-          <img *ngFor="let url of post.imageUrls" [src]="getImageUrl(url)" [alt]="post.title" class="post-image" />
+          [ngClass]="{
+            single: post.imageUrls.length === 1,
+            double: post.imageUrls.length === 2,
+            triple: post.imageUrls.length === 3,
+          }"
+        >
+          <img
+            *ngFor="let url of post.imageUrls"
+            [src]="getImageUrl(url)"
+            [alt]="post.title"
+            class="post-image"
+          />
         </div>
 
         <div class="post-full" *ngIf="toggleExpanded[post.id]">{{ post.content }}</div>
 
         <div class="post-footer">
-          <span class="action-btn">❤️ {{ post.likeCount }}</span>
-          <span class="action-btn">💬 {{ post.commentCount }}</span>
+          <!-- <span class="action-btn">❤️ {{ post.likeCount }}</span>
+          <span class="action-btn">💬 {{ post.commentCount }}</span> -->
+          <button
+            class="action-btn"
+            [class.liked]="post.likedByCurrentUser"
+            (click)="toggleLike(post.id)"
+          >
+            {{ post.likedByCurrentUser ? '❤️' : '🤍' }}
+            <span>{{ post.likeCount }}</span>
+          </button>
+          <button
+            class="action-btn"
+            [class.comments-open]="openComments[post.id]"
+            (click)="toggleComments(post.id)"
+          >
+            💬 <span>{{ post.commentCount }}</span>
+          </button>
           <button class="read-more" (click)="toggleExpand(post.id)">
             {{ toggleExpanded[post.id] ? '← Réduire' : 'Lire la suite →' }}
           </button>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section" *ngIf="openComments[post.id]">
+          <div *ngIf="commentsLoading[post.id]" class="comments-loading">
+            <div class="loading-dots sm"><span></span><span></span><span></span></div>
+          </div>
+
+          <div class="comments-list" *ngIf="!commentsLoading[post.id]">
+            <div *ngIf="!comments[post.id] || comments[post.id].length === 0" class="no-comments">
+              Aucun commentaire. Sois le premier !
+            </div>
+
+            <div class="comment-item" *ngFor="let c of comments[post.id]">
+              <div class="comment-avatar" [class.own]="c.authorId === currentUser?.id">
+                {{ getInitial(c.authorUsername) }}
+              </div>
+              <div class="comment-body">
+                <div class="comment-header">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span class="comment-author">{{ c.authorUsername }}</span>
+                    <span class="comment-date">{{ formatDate(c.createdAt) }}</span>
+                  </div>
+                  <!-- requestDeleteComment() au lieu de deleteComment() -->
+                  <button
+                    class="delete-comment-btn"
+                    *ngIf="c.authorId === currentUser?.id"
+                    (click)="requestDeleteComment(post.id, c.id)"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div class="comment-text">{{ c.content }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comment-input-row" *ngIf="currentUser">
+            <div class="comment-avatar own">{{ getInitial(currentUser.username) }}</div>
+            <textarea
+              class="comment-input"
+              [(ngModel)]="commentInputs[post.id]"
+              placeholder="Ajouter un commentaire…"
+              rows="1"
+              (keydown)="onCommentKey($event, post.id)"
+            >
+            </textarea>
+            <button class="comment-submit" (click)="submitComment(post.id)">Envoyer</button>
+          </div>
         </div>
       </article>
     </div>
@@ -105,26 +184,38 @@
 <!-- ── Modal : confirmation d'abonnement / désabonnement ── -->
 <div class="modal-overlay" *ngIf="showFollowConfirm" (click)="cancelFollow()">
   <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-icon" [ngClass]="stats?.followedByCurrentUser ? 'modal-icon--delete' : 'modal-icon--edit'">
+    <div
+      class="modal-icon"
+      [ngClass]="stats?.followedByCurrentUser ? 'modal-icon--delete' : 'modal-icon--edit'"
+    >
       {{ stats?.followedByCurrentUser ? '👋' : '👤' }}
     </div>
     <div class="modal-title">
-      {{ stats?.followedByCurrentUser ? 'Se désabonner de ' : "S'abonner à " }}{{ stats?.username }} ?
+      {{ stats?.followedByCurrentUser ? 'Se désabonner de ' : "S'abonner à "
+      }}{{ stats?.username }} ?
     </div>
     <div class="modal-text" *ngIf="!stats?.followedByCurrentUser">
-      Tu recevras des notifications quand <strong>{{ stats?.username }}</strong> publiera un nouveau post.
+      Tu recevras des notifications quand <strong>{{ stats?.username }}</strong> publiera un nouveau
+      post.
     </div>
     <div class="modal-text" *ngIf="stats?.followedByCurrentUser">
-      Tu ne recevras plus les notifications de <strong>{{ stats?.username }}</strong>.
+      Tu ne recevras plus les notifications de <strong>{{ stats?.username }}</strong
+      >.
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" (click)="cancelFollow()" [disabled]="followLoading">Annuler</button>
-      <button class="btn btn-sm"
+      <button class="btn btn-ghost btn-sm" (click)="cancelFollow()" [disabled]="followLoading">
+        Annuler
+      </button>
+      <button
+        class="btn btn-sm"
         [class.btn-primary]="!stats?.followedByCurrentUser"
         [class.btn-delete]="stats?.followedByCurrentUser"
         (click)="confirmFollow()"
-        [disabled]="followLoading">
-        {{ followLoading ? 'En cours…' : (stats?.followedByCurrentUser ? 'Se désabonner' : "S'abonner") }}
+        [disabled]="followLoading"
+      >
+        {{
+          followLoading ? 'En cours…' : stats?.followedByCurrentUser ? 'Se désabonner' : "S'abonner"
+        }}
       </button>
     </div>
   </div>
@@ -136,16 +227,40 @@
     <div class="modal-title">Signaler {{ stats?.username }}</div>
     <div class="modal-text">Sélectionnez une raison</div>
     <div class="report-reasons">
-      <div class="report-reason" *ngFor="let r of reportReasons"
+      <div
+        class="report-reason"
+        *ngFor="let r of reportReasons"
         [class.selected]="reportReason === r.value"
-        (click)="selectReason(r.value)">{{ r.label }}</div>
+        (click)="selectReason(r.value)"
+      >
+        {{ r.label }}
+      </div>
     </div>
-    <textarea class="report-textarea" [(ngModel)]="reportDescription"
-      placeholder="Description (optionnel)" rows="3"></textarea>
+    <textarea
+      class="report-textarea"
+      [(ngModel)]="reportDescription"
+      placeholder="Description (optionnel)"
+      rows="3"
+    ></textarea>
     <div class="alert alert-error" *ngIf="reportError">{{ reportError }}</div>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" (click)="closeReport()">Annuler</button>
-      <button class="btn btn-sm btn-delete" (click)="submitReport()" [disabled]="reportLoading">Signaler</button>
+      <button class="btn btn-sm btn-delete" (click)="submitReport()" [disabled]="reportLoading">
+        Signaler
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal : confirmation de suppression de commentaire ── -->
+<div class="modal-overlay" *ngIf="pendingDeleteCommentId" (click)="cancelDeleteComment()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-icon modal-icon--delete">💬</div>
+    <div class="modal-title">Supprimer ce commentaire ?</div>
+    <div class="modal-text">Ce commentaire sera définitivement supprimé.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" (click)="cancelDeleteComment()">Annuler</button>
+      <button class="btn btn-sm btn-delete" (click)="confirmDeleteComment()">Supprimer</button>
     </div>
   </div>
 </div>
