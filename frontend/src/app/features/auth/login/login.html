@@ -1,4 +1,4 @@
-<div class="auth-page">
+<!-- <div class="auth-page">
   <div class="auth-card">
     <div class="auth-brand">Student<span>Hub</span></div>
     <div class="auth-tagline">La plateforme des étudiants</div>
@@ -20,6 +20,47 @@
     </div>
 
     <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px"
+      (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Connexion…' : 'Se connecter' }}
+    </button>
+
+    <div class="auth-footer">
+      Pas encore de compte ? <a routerLink="/register">S'inscrire</a>
+    </div>
+  </div>
+</div> -->
+
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-brand">Student<span>Hub</span></div>
+    <div class="auth-tagline">La plateforme des étudiants</div>
+
+    <div class="auth-title">Connexion</div>
+
+    <div class="alert alert-error" *ngIf="error">{{ error }}</div>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Email ou nom d'utilisateur</mat-label>
+      <input matInput
+        type="text"
+        [(ngModel)]="identifier"
+        placeholder="john@example.com"
+        (keydown)="onKey($event)"
+        autocomplete="username" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="mat-field-full">
+      <mat-label>Mot de passe</mat-label>
+      <input matInput
+        type="password"
+        [(ngModel)]="password"
+        placeholder="••••••••"
+        (keydown)="onKey($event)"
+        autocomplete="current-password" />
+    </mat-form-field>
+
+    <button mat-flat-button class="btn-mat-primary"
       (click)="submit()" [disabled]="loading">
       {{ loading ? 'Connexion…' : 'Se connecter' }}
     </button>
