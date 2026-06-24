@@ -16,6 +16,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir:./uploads}")
     private String uploadDir;
 
+    // FIX DOCKER : origines autorisees configurables via variable d'environnement.
+    // En dev local : http://localhost:4200. En Docker (Nginx) : http://localhost, http://localhost:80
+    @Value("${cors.allowed-origins:http://localhost:4200,http://localhost,http://localhost:80}")
+    private String[] allowedOrigins;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // Servir les fichiers du dossier ./uploads/
@@ -26,7 +31,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:4200")  // ← Changé de allowedOrigins
+                .allowedOriginPatterns(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
