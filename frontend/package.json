@@ -11,6 +11,7 @@
   "private": true,
   "packageManager": "npm@10.9.2",
   "dependencies": {
+    "@angular/animations": "^21.2.0",
     "@angular/material": "^21.2.0",
     "@angular/cdk": "^21.2.0",
     "@angular/common": "^21.2.0",

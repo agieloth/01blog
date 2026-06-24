@@ -1,27 +1,93 @@
-version: '4.32'
+# version: '4.32'
+
+# services:
+
+#   # ── Base de données PostgreSQL ──────────────────────────────────────────────
+#   postgres:
+#     image: postgres:16-alpine
+#     container_name: studenthub-db
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB:       studenthub
+#       POSTGRES_USER:     studenthub_user0
+#       POSTGRES_PASSWORD: studenthub123
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     ports:
+#       - "5432:5432"           # optionnel, pour accès depuis l'hôte
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U studenthub_user0 -d studenthub"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+
+#   # ── Backend Spring Boot ─────────────────────────────────────────────────────
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     container_name: studenthub-backend
+#     restart: unless-stopped
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#     environment:
+#       SPRING_PROFILES_ACTIVE: postgres
+#       SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/studenthub
+#       SPRING_DATASOURCE_USERNAME: studenthub_user0
+#       SPRING_DATASOURCE_PASSWORD: studenthub123
+#       JWT_SECRET:     357638792F423F4428472B4B6250655368566D597133743677397A2443264629
+#       JWT_EXPIRATION: 86400000
+#       FILE_UPLOAD_DIR: /app/uploads
+#     volumes:
+#       - uploads_data:/app/uploads
+#     ports:
+#       - "8080:8080"           # optionnel, accès direct au backend
+#     healthcheck:
+#       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/auth/health || exit 1"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 10
+
+#   # ── Frontend Angular (Nginx) ────────────────────────────────────────────────
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     container_name: studenthub-frontend
+#     restart: unless-stopped
+#     depends_on:
+#       backend:
+#         condition: service_healthy
+#     ports:
+#       - "80:80"               # accès via http://localhost
+
+# volumes:
+#   postgres_data:              # données PostgreSQL persistées
+#   uploads_data:               # images uploadées persistées
+
+
 
 services:
 
-  # ── Base de données PostgreSQL ──────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: studenthub-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       studenthub
-      POSTGRES_USER:     studenthub_user0
+      POSTGRES_DB: studenthub
+      POSTGRES_USER: studenthub_user0
       POSTGRES_PASSWORD: studenthub123
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"           # optionnel, pour accès depuis l'hôte
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U studenthub_user0 -d studenthub"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # ── Backend Spring Boot ─────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -33,23 +99,22 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://postgres:5432/studenthub
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/studenthub
       SPRING_DATASOURCE_USERNAME: studenthub_user0
       SPRING_DATASOURCE_PASSWORD: studenthub123
-      JWT_SECRET:     357638792F423F4428472B4B6250655368566D597133743677397A2443264629
+      JWT_SECRET: 357638792F423F4428472B4B6250655368566D597133743677397A2443264629
       JWT_EXPIRATION: 86400000
       FILE_UPLOAD_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
     ports:
-      - "8080:8080"           # optionnel, accès direct au backend
+      - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/auth/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 10
 
-  # ── Frontend Angular (Nginx) ────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
@@ -60,8 +125,8 @@ services:
       backend:
         condition: service_healthy
     ports:
-      - "80:80"               # accès via http://localhost
+      - "80:80"
 
 volumes:
-  postgres_data:              # données PostgreSQL persistées
-  uploads_data:               # images uploadées persistées
+  postgres_data:
+  uploads_data:

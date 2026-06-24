@@ -1,18 +1,17 @@
 # ============================================================
-# Docker ignore pour le backend
+# Docker ignore pour le frontend
 # ============================================================
 
-target/
-*.jar
-*.war
-*.log
+dist/
+node_modules/
+.angular/
 .idea/
 *.iml
 .git/
 .gitignore
 README.md
-.mvn/
-mvnw
-mvnw.cmd
 Dockerfile
 .dockerignore
+*.log
+.env
+.env.*
