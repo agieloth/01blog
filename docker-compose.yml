@@ -1,5 +1,3 @@
-version: '4.32'
-
 services:
 
   # ── Base de données PostgreSQL ──────────────────────────────────────────────
@@ -39,6 +37,7 @@ services:
       JWT_SECRET:     357638792F423F4428472B4B6250655368566D597133743677397A2443264629
       JWT_EXPIRATION: 86400000
       FILE_UPLOAD_DIR: /app/uploads
+      CORS_ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:4200"
     volumes:
       - uploads_data:/app/uploads
     ports:
