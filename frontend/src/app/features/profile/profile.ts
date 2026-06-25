@@ -384,12 +384,16 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadComments(postId: number): void {
+  loadComments(postId: number, updateCount = false): void {
     this.commentsLoading[postId] = true;
     this.postService.getComments(postId).subscribe({
       next: (data) => {
         this.comments[postId] = data as CommentItem[];
         this.commentsLoading[postId] = false;
+        if (updateCount) {
+          const post = this.posts.find((p) => p.id === postId);
+          if (post) post.commentCount = data.length;
+        }
       },
       error: () => {
         this.commentsLoading[postId] = false;
@@ -403,9 +407,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.postService.addComment(postId, { content }).subscribe({
       next: () => {
         this.commentInputs[postId] = '';
-        const post = this.posts.find((p) => p.id === postId);
-        if (post) post.commentCount++;
-        this.loadComments(postId);
+        this.loadComments(postId, true);
       },
     });
   }
@@ -430,9 +432,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     this.postService.deleteComment(postId, commentId).subscribe({
       next: () => {
-        const post = this.posts.find((p) => p.id === postId);
-        if (post && post.commentCount > 0) post.commentCount--;
-        this.loadComments(postId);
+        this.loadComments(postId, true);
         this.toast.success('Commentaire supprimé.');
       },
       error: () => {
