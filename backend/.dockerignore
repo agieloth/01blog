@@ -1,0 +1,15 @@
+target
+uploads
+.git
+.gitignore
+.mvn
+mvnw
+mvnw.cmd
+Dockerfile
+.dockerignore
+todo
+*.log
+.idea
+.vscode
+*.iml
+HELP.md
