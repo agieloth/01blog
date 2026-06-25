@@ -426,7 +426,6 @@
 //   }
 // }
 
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -454,7 +453,7 @@ interface CommentItem {
   standalone: true,
   imports: [CommonModule, FormsModule, NavbarComponent],
   templateUrl: './feed.html',
-  styleUrl: './feed.scss'
+  styleUrl: './feed.scss',
 })
 export class FeedComponent implements OnInit, OnDestroy {
   posts: Post[] = [];
@@ -493,6 +492,7 @@ export class FeedComponent implements OnInit, OnDestroy {
   commentsLoading: { [id: number]: boolean } = {};
 
   // Report
+  reportPostId: number | null = null;
   reportUserId: number | null = null;
   reportUsername = '';
   reportReason = '';
@@ -520,7 +520,7 @@ export class FeedComponent implements OnInit, OnDestroy {
     private wsService: WebSocketService,
     private reportService: ReportService,
     private toast: ToastService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -528,41 +528,47 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.loadPosts();
 
     this.subs.push(
-      this.wsService.postEvents.subscribe(event => {
+      this.wsService.postEvents.subscribe((event) => {
         if (event.type === 'POST_CREATED') {
           if (event.data.authorId !== this.currentUser?.id) {
             this.posts.unshift(event.data);
           }
         } else if (event.type === 'POST_UPDATED') {
-          const idx = this.posts.findIndex(p => p.id === event.data.id);
+          const idx = this.posts.findIndex((p) => p.id === event.data.id);
           if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
         } else if (event.type === 'POST_DELETED') {
-          this.posts = this.posts.filter(p => p.id !== event.data);
+          this.posts = this.posts.filter((p) => p.id !== event.data);
         } else if (event.type === 'COMMENT_COUNT_UPDATED') {
-          const post = this.posts.find(p => p.id === event.data.postId);
+          const post = this.posts.find((p) => p.id === event.data.postId);
           if (post) post.commentCount = event.data.count;
         }
-      })
+      }),
     );
 
     this.subs.push(
-      this.wsService.likeEvents.subscribe(update => {
-        const post = this.posts.find(p => p.id === update.postId);
+      this.wsService.likeEvents.subscribe((update) => {
+        const post = this.posts.find((p) => p.id === update.postId);
         if (post) post.likeCount = update.likeCount;
-      })
+      }),
     );
   }
 
   ngOnDestroy(): void {
-    this.subs.forEach(s => s.unsubscribe());
+    this.subs.forEach((s) => s.unsubscribe());
   }
 
   loadPosts(): void {
     this.loading = true;
     this.error = '';
     this.postService.getAllPosts().subscribe({
-      next: posts => { this.posts = posts; this.loading = false; },
-      error: () => { this.error = 'Erreur lors du chargement.'; this.loading = false; }
+      next: (posts) => {
+        this.posts = posts;
+        this.loading = false;
+      },
+      error: () => {
+        this.error = 'Erreur lors du chargement.';
+        this.loading = false;
+      },
     });
   }
 
@@ -576,7 +582,9 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.formError = '';
     this.showForm = true;
     setTimeout(() => {
-      document.querySelector('.post-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .querySelector('.post-form-card')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
 
@@ -596,7 +604,9 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.formError = '';
     this.showForm = true;
     setTimeout(() => {
-      document.querySelector('.post-form-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document
+        .querySelector('.post-form-card')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
 
@@ -638,7 +648,7 @@ export class FeedComponent implements OnInit, OnDestroy {
     const formData = new FormData();
     formData.append('title', this.postTitle.trim());
     formData.append('content', this.postContent.trim());
-    this.selectedImages.forEach(f => formData.append('images', f));
+    this.selectedImages.forEach((f) => formData.append('images', f));
 
     const req$ = this.editingPostId
       ? this.postService.updatePostForm(this.editingPostId, formData)
@@ -659,7 +669,7 @@ export class FeedComponent implements OnInit, OnDestroy {
         this.formLoading = false;
         this.formError = err.error?.message || 'Erreur lors de la publication.';
         this.toast.error(this.formError);
-      }
+      },
     });
   }
 
@@ -684,9 +694,9 @@ export class FeedComponent implements OnInit, OnDestroy {
     }
 
     this.selectedImages.push(...files);
-    files.forEach(f => {
+    files.forEach((f) => {
       const reader = new FileReader();
-      reader.onload = e => this.imagePreviews.push(e.target?.result as string);
+      reader.onload = (e) => this.imagePreviews.push(e.target?.result as string);
       reader.readAsDataURL(f);
     });
     this.formError = '';
@@ -705,15 +715,19 @@ export class FeedComponent implements OnInit, OnDestroy {
 
   // ── DELETE POST ───────────────────────────────────────────────────────────
 
-  openDelete(id: number): void { this.deletingPostId = id; }
-  closeDelete(): void { this.deletingPostId = null; }
+  openDelete(id: number): void {
+    this.deletingPostId = id;
+  }
+  closeDelete(): void {
+    this.deletingPostId = null;
+  }
 
   confirmDelete(): void {
     if (!this.deletingPostId) return;
     this.deleteLoading = true;
     this.postService.deletePost(this.deletingPostId).subscribe({
       next: () => {
-        this.posts = this.posts.filter(p => p.id !== this.deletingPostId);
+        this.posts = this.posts.filter((p) => p.id !== this.deletingPostId);
         this.deletingPostId = null;
         this.deleteLoading = false;
         this.toast.success('Post supprimé.');
@@ -722,7 +736,7 @@ export class FeedComponent implements OnInit, OnDestroy {
         this.deleteLoading = false;
         this.closeDelete();
         this.toast.error('Erreur lors de la suppression du post.');
-      }
+      },
     });
   }
 
@@ -730,13 +744,13 @@ export class FeedComponent implements OnInit, OnDestroy {
 
   toggleLike(postId: number): void {
     this.postService.toggleLike(postId).subscribe({
-      next: data => {
-        const post = this.posts.find(p => p.id === postId);
+      next: (data) => {
+        const post = this.posts.find((p) => p.id === postId);
         if (post) {
           post.likeCount = data.likeCount;
           post.likedByCurrentUser = data.likedByCurrentUser;
         }
-      }
+      },
     });
   }
 
@@ -746,7 +760,7 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.openComments[postId] = !this.openComments[postId];
     if (this.openComments[postId] && !this.comments[postId]) {
       this.loadComments(postId);
-      this.wsService.subscribeToComments(postId).subscribe(event => {
+      this.wsService.subscribeToComments(postId).subscribe((event) => {
         if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
           this.loadComments(postId);
         }
@@ -757,8 +771,13 @@ export class FeedComponent implements OnInit, OnDestroy {
   loadComments(postId: number): void {
     this.commentsLoading[postId] = true;
     this.postService.getComments(postId).subscribe({
-      next: data => { this.comments[postId] = data as CommentItem[]; this.commentsLoading[postId] = false; },
-      error: () => { this.commentsLoading[postId] = false; }
+      next: (data) => {
+        this.comments[postId] = data as CommentItem[];
+        this.commentsLoading[postId] = false;
+      },
+      error: () => {
+        this.commentsLoading[postId] = false;
+      },
     });
   }
 
@@ -768,10 +787,10 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.postService.addComment(postId, { content }).subscribe({
       next: () => {
         this.commentInputs[postId] = '';
-        const post = this.posts.find(p => p.id === postId);
+        const post = this.posts.find((p) => p.id === postId);
         if (post) post.commentCount++;
         this.loadComments(postId);
-      }
+      },
     });
   }
 
@@ -795,24 +814,28 @@ export class FeedComponent implements OnInit, OnDestroy {
 
     this.postService.deleteComment(postId, commentId).subscribe({
       next: () => {
-        const post = this.posts.find(p => p.id === postId);
+        const post = this.posts.find((p) => p.id === postId);
         if (post && post.commentCount > 0) post.commentCount--;
         this.loadComments(postId);
         this.toast.success('Commentaire supprimé.');
       },
       error: () => {
         this.toast.error('Erreur lors de la suppression du commentaire.');
-      }
+      },
     });
   }
 
   onCommentKey(e: KeyboardEvent, postId: number): void {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.submitComment(postId); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.submitComment(postId);
+    }
   }
 
   // ── REPORT ────────────────────────────────────────────────────────────────
 
-  openReport(userId: number, username: string): void {
+  openReport(postId: number, userId: number, username: string): void {
+    this.reportPostId = postId;
     this.reportUserId = userId;
     this.reportUsername = username;
     this.reportReason = '';
@@ -820,28 +843,40 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.reportError = '';
   }
 
-  closeReport(): void { this.reportUserId = null; }
-  selectReason(r: string): void { this.reportReason = r; this.reportError = ''; }
+  closeReport(): void {
+    this.reportPostId = null;
+    this.reportUserId = null;
+  }
+  selectReason(r: string): void {
+    this.reportReason = r;
+    this.reportError = '';
+  }
 
   submitReport(): void {
-    if (!this.reportReason) { this.reportError = 'Sélectionnez une raison.'; return; }
-    if (!this.reportUserId) return;
+    if (!this.reportReason) {
+      this.reportError = 'Sélectionnez une raison.';
+      return;
+    }
+    if (!this.reportPostId) return;
     this.reportLoading = true;
-    this.reportService.reportUser(this.reportUserId, {
-      reason: this.reportReason,
-      description: this.reportDescription || undefined
-    }).subscribe({
-      next: () => {
-        this.reportLoading = false;
-        this.closeReport();
-        this.toast.success('Signalement envoyé.');
-      },
-      error: (err) => {
-        this.reportLoading = false;
-        this.reportError = err.error?.message || 'Erreur lors du signalement.';
-        this.toast.error(this.reportError);
-      }
-    });
+    this.reportService
+      .reportPost(this.reportPostId, {
+        // ← reportPost, pas reportUser
+        reason: this.reportReason,
+        description: this.reportDescription || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.reportLoading = false;
+          this.closeReport();
+          this.toast.success('Signalement envoyé.');
+        },
+        error: (err) => {
+          this.reportLoading = false;
+          this.reportError = err.error?.message || 'Erreur lors du signalement.';
+          this.toast.error(this.reportError);
+        },
+      });
   }
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
@@ -858,7 +893,9 @@ export class FeedComponent implements OnInit, OnDestroy {
     this.router.navigate(['/profile', userId]);
   }
 
-  getInitial(u?: string): string { return u ? u[0].toUpperCase() : '?'; }
+  getInitial(u?: string): string {
+    return u ? u[0].toUpperCase() : '?';
+  }
 
   getImageUrl(url: string): string {
     if (!url) return '';
@@ -867,7 +904,8 @@ export class FeedComponent implements OnInit, OnDestroy {
   }
 
   formatDate(s: string): string {
-    const d = new Date(s), diff = (Date.now() - d.getTime()) / 1000;
+    const d = new Date(s),
+      diff = (Date.now() - d.getTime()) / 1000;
     if (diff < 60) return "à l'instant";
     if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
