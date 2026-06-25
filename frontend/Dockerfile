@@ -1,15 +1,19 @@
-# ── Stage 1 : Build Angular ──────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+# ── Stage 1 : Build Angular ───────────────────────────────────────────────
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Cache des dépendances : on copie d'abord les manif/lock
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 
+# Code source (node_modules/dist sont exclus via .dockerignore)
 COPY . .
+
+# Build de production (utilise environment.prod.ts via fileReplacements)
 RUN npm run build -- --configuration=production
 
-# ── Stage 2 : Nginx ──────────────────────────────────────────────────────────
+# ── Stage 2 : Nginx ────────────────────────────────────────────────────────
 FROM nginx:1.27-alpine
 
 RUN rm -rf /usr/share/nginx/html/*
