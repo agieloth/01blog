@@ -163,10 +163,6 @@
 //   }
 // }
 
-
-
-
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
@@ -195,7 +191,6 @@ import { environment } from '../../../environments/environment';
 
 import { FormsModule } from '@angular/forms';
 
-
 interface CommentItem {
   id: number;
   content: string;
@@ -204,7 +199,6 @@ interface CommentItem {
   createdAt: string;
 }
 @Component({
-
   selector: 'app-profile',
 
   standalone: true,
@@ -213,12 +207,9 @@ interface CommentItem {
 
   templateUrl: './profile.html',
 
-  styleUrl: './profile.scss'
-
+  styleUrl: './profile.scss',
 })
-
 export class ProfileComponent implements OnInit, OnDestroy {
-
   stats: UserStatsResponse | null = null;
 
   posts: Post[] = [];
@@ -231,15 +222,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
   profileUserId!: number;
 
-
-
   // Confirmation d'abonnement / désabonnement
 
   showFollowConfirm = false;
 
   followLoading = false;
-
-
 
   // Report
 
@@ -263,10 +250,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   commentInputs: { [id: number]: string } = {};
   commentsLoading: { [id: number]: boolean } = {};
 
-
-
   readonly reportReasons = [
-
     { value: 'SPAM', label: 'Spam' },
 
     { value: 'HARASSMENT', label: 'Harcèlement' },
@@ -276,19 +260,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
     { value: 'HATE_SPEECH', label: 'Discours haineux' },
 
     { value: 'OTHER', label: 'Autre' },
-
   ];
-
-
 
   private subs: Subscription[] = [];
 
   private apiBase = environment.apiUrl.replace('/api', '');
 
-
-
   constructor(
-
     private route: ActivatedRoute,
 
     private router: Router,
@@ -303,119 +281,92 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     public authService: AuthService,
 
-    private wsService: WebSocketService
-
+    private wsService: WebSocketService,
   ) {}
 
-
-
   ngOnInit(): void {
-
     this.currentUser = this.authService.getCurrentUser();
 
-
-
     this.subs.push(
-
-      this.route.paramMap.subscribe(params => {
-
+      this.route.paramMap.subscribe((params) => {
         this.profileUserId = Number(params.get('id'));
 
         this.loadProfile();
-
-      })
-
+      }),
     );
 
     // this.subs.push(
 
-      // this.wsService.postEvents.subscribe(event => {
-      //     if (event.type === 'POST_CREATED') {
-      //       if (event.data.authorId !== this.currentUser?.id) {
-      //         this.posts.unshift(event.data);
-      //       }
-      //     } else if (event.type === 'POST_UPDATED') {
-      //       const idx = this.posts.findIndex(p => p.id === event.data.id);
-      //       if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
-      //     } else if (event.type === 'POST_DELETED') {
-      //       this.posts = this.posts.filter(p => p.id !== event.data);
-      //     } else if (event.type === 'COMMENT_COUNT_UPDATED') {
-      //       const post = this.posts.find(p => p.id === event.data.postId);
-      //       if (post) post.commentCount = event.data.count;
-      //     }
-      //   })
+    // this.wsService.postEvents.subscribe(event => {
+    //     if (event.type === 'POST_CREATED') {
+    //       if (event.data.authorId !== this.currentUser?.id) {
+    //         this.posts.unshift(event.data);
+    //       }
+    //     } else if (event.type === 'POST_UPDATED') {
+    //       const idx = this.posts.findIndex(p => p.id === event.data.id);
+    //       if (idx !== -1) this.posts[idx] = { ...this.posts[idx], ...event.data };
+    //     } else if (event.type === 'POST_DELETED') {
+    //       this.posts = this.posts.filter(p => p.id !== event.data);
+    //     } else if (event.type === 'COMMENT_COUNT_UPDATED') {
+    //       const post = this.posts.find(p => p.id === event.data.postId);
+    //       if (post) post.commentCount = event.data.count;
+    //     }
+    //   })
 
     // );
 
-
-
     this.subs.push(
-
-      this.wsService.followEvents.subscribe(update => {
-
+      this.wsService.followEvents.subscribe((update) => {
         if (this.stats && update.userId === this.profileUserId) {
-
           this.stats.followerCount = update.followerCount;
-
         }
-
-      })
-
+      }),
     );
-
   }
-
-
 
   ngOnDestroy(): void {
-
-    this.subs.forEach(s => s.unsubscribe());
-
+    this.subs.forEach((s) => s.unsubscribe());
   }
 
-
-
   loadProfile(): void {
-
     this.loading = true;
 
     this.error = '';
 
-
-
     this.userService.getUserStats(this.profileUserId).subscribe({
-
-      next: stats => {
-
+      next: (stats) => {
         this.stats = stats;
 
         this.userService.getUserPosts(this.profileUserId).subscribe({
+          next: (posts) => {
+            this.posts = posts;
+            this.loading = false;
+          },
 
-          next: posts => { this.posts = posts; this.loading = false; },
-
-          error: () => { this.loading = false; }
-
+          error: () => {
+            this.loading = false;
+          },
         });
-
       },
 
-      error: () => { this.error = 'Profil introuvable.'; this.loading = false; }
-
+      error: () => {
+        this.error = 'Profil introuvable.';
+        this.loading = false;
+      },
     });
-
   }
 
   // ── LIKES ─────────────────────────────────────────────────────────────────
 
   toggleLike(postId: number): void {
     this.postService.toggleLike(postId).subscribe({
-      next: data => {
-        const post = this.posts.find(p => p.id === postId);
+      next: (data) => {
+        const post = this.posts.find((p) => p.id === postId);
         if (post) {
           post.likeCount = data.likeCount;
           post.likedByCurrentUser = data.likedByCurrentUser;
         }
-      }
+      },
     });
   }
 
@@ -425,7 +376,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.openComments[postId] = !this.openComments[postId];
     if (this.openComments[postId] && !this.comments[postId]) {
       this.loadComments(postId);
-      this.wsService.subscribeToComments(postId).subscribe(event => {
+      this.wsService.subscribeToComments(postId).subscribe((event) => {
         if (event.type === 'COMMENT_ADDED' || event.type === 'COMMENT_DELETED') {
           this.loadComments(postId);
         }
@@ -436,8 +387,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
   loadComments(postId: number): void {
     this.commentsLoading[postId] = true;
     this.postService.getComments(postId).subscribe({
-      next: data => { this.comments[postId] = data as CommentItem[]; this.commentsLoading[postId] = false; },
-      error: () => { this.commentsLoading[postId] = false; }
+      next: (data) => {
+        this.comments[postId] = data as CommentItem[];
+        this.commentsLoading[postId] = false;
+      },
+      error: () => {
+        this.commentsLoading[postId] = false;
+      },
     });
   }
 
@@ -447,10 +403,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.postService.addComment(postId, { content }).subscribe({
       next: () => {
         this.commentInputs[postId] = '';
-        const post = this.posts.find(p => p.id === postId);
+        const post = this.posts.find((p) => p.id === postId);
         if (post) post.commentCount++;
         this.loadComments(postId);
-      }
+      },
     });
   }
 
@@ -474,191 +430,164 @@ export class ProfileComponent implements OnInit, OnDestroy {
 
     this.postService.deleteComment(postId, commentId).subscribe({
       next: () => {
-        const post = this.posts.find(p => p.id === postId);
+        const post = this.posts.find((p) => p.id === postId);
         if (post && post.commentCount > 0) post.commentCount--;
         this.loadComments(postId);
         this.toast.success('Commentaire supprimé.');
       },
       error: () => {
         this.toast.error('Erreur lors de la suppression du commentaire.');
-      }
+      },
     });
   }
 
   onCommentKey(e: KeyboardEvent, postId: number): void {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.submitComment(postId); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      this.submitComment(postId);
+    }
   }
 
   // ── FOLLOW ────────────────────────────────────────────────────────────────
 
-
-
   requestFollow(): void {
-
     this.showFollowConfirm = true;
-
   }
-
-
 
   cancelFollow(): void {
-
     this.showFollowConfirm = false;
-
   }
 
-
-
   confirmFollow(): void {
-
     this.followLoading = true;
 
     this.userService.toggleFollow(this.profileUserId).subscribe({
-
-      next: data => {
-
+      next: (data) => {
         if (this.stats) {
-
           this.stats.followedByCurrentUser = data.following;
 
           this.stats.followerCount = data.followerCount;
-
         }
 
         this.followLoading = false;
 
         this.showFollowConfirm = false;
 
-        this.toast.success(data.following ? `Vous suivez maintenant ${this.stats?.username}.` : `Vous ne suivez plus ${this.stats?.username}.`);
-
+        this.toast.success(
+          data.following
+            ? `Vous suivez maintenant ${this.stats?.username}.`
+            : `Vous ne suivez plus ${this.stats?.username}.`,
+        );
       },
 
       error: () => {
-
         this.followLoading = false;
 
         this.showFollowConfirm = false;
 
         this.toast.error("Erreur lors de l'opération.");
-
-      }
-
+      },
     });
-
   }
-
-
 
   // ── HELPERS ───────────────────────────────────────────────────────────────
 
-
-
   get isOwn(): boolean {
-
     return this.currentUser?.id === this.profileUserId;
-
   }
-
-
 
   get isAuthenticated(): boolean {
-
     return this.authService.isAuthenticated();
-
   }
 
+  goBack(): void {
+    this.router.navigate(['/feed']);
+  }
 
-
-  goBack(): void { this.router.navigate(['/feed']); }
-
-  goToProfile(userId: number): void { this.router.navigate(['/profile', userId]); }
-
-
+  goToProfile(userId: number): void {
+    this.router.navigate(['/profile', userId]);
+  }
 
   toggleExpanded: { [postId: number]: boolean } = {};
 
-  toggleExpand(postId: number): void { this.toggleExpanded[postId] = !this.toggleExpanded[postId]; }
+  toggleExpand(postId: number): void {
+    this.toggleExpanded[postId] = !this.toggleExpanded[postId];
+  }
 
+  isOwnPost(post: Post): boolean {
+    return this.currentUser?.id === post.authorId;
+  }
 
-
-  isOwnPost(post: Post): boolean { return this.currentUser?.id === post.authorId; }
-
-
-
-  getInitial(u?: string): string { return u ? u[0].toUpperCase() : '?'; }
-
-
+  getInitial(u?: string): string {
+    return u ? u[0].toUpperCase() : '?';
+  }
 
   getImageUrl(url: string): string {
-
     if (url.startsWith('http')) return url;
 
     return `${this.apiBase}${url}`;
-
   }
-
-
 
   formatDate(s: string): string {
-
-    const d = new Date(s), diff = (Date.now() - d.getTime()) / 1000;
-
+    if (!s) return '';
+    // FIX : LocalDateTime de Spring n'a pas de timezone → on force l'interprétation UTC
+    const normalized =
+      s.includes('T') && !s.includes('Z') && !s.includes('+') && !s.includes('-', 10) ? s + 'Z' : s;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return s;
+    const diff = (Date.now() - d.getTime()) / 1000;
     if (diff < 60) return "à l'instant";
-
     if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
-
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-
   }
 
+  openReport(): void {
+    this.showReport = true;
+    this.reportReason = '';
+    this.reportDescription = '';
+    this.reportError = '';
+  }
 
+  closeReport(): void {
+    this.showReport = false;
+  }
 
-  openReport(): void { this.showReport = true; this.reportReason = ''; this.reportDescription = ''; this.reportError = ''; }
-
-  closeReport(): void { this.showReport = false; }
-
-  selectReason(r: string): void { this.reportReason = r; this.reportError = ''; }
-
-
+  selectReason(r: string): void {
+    this.reportReason = r;
+    this.reportError = '';
+  }
 
   submitReport(): void {
-
-    if (!this.reportReason) { this.reportError = 'Sélectionnez une raison.'; return; }
+    if (!this.reportReason) {
+      this.reportError = 'Sélectionnez une raison.';
+      return;
+    }
 
     this.reportLoading = true;
 
-    this.reportService.reportUser(this.profileUserId, {
+    this.reportService
+      .reportUser(this.profileUserId, {
+        reason: this.reportReason,
 
-      reason: this.reportReason,
+        description: this.reportDescription || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.reportLoading = false;
 
-      description: this.reportDescription || undefined
+          this.showReport = false;
 
-    }).subscribe({
+          this.toast.success('Signalement envoyé.');
+        },
 
-      next: () => {
+        error: (err) => {
+          this.reportLoading = false;
 
-        this.reportLoading = false;
+          this.reportError = err.error?.message || 'Erreur lors du signalement.';
 
-        this.showReport = false;
-
-        this.toast.success('Signalement envoyé.');
-
-      },
-
-      error: (err) => {
-
-        this.reportLoading = false;
-
-        this.reportError = err.error?.message || 'Erreur lors du signalement.';
-
-        this.toast.error(this.reportError);
-
-      }
-
-    });
-
+          this.toast.error(this.reportError);
+        },
+      });
   }
-
 }

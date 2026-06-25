@@ -476,8 +476,13 @@ export class FeedComponent implements OnInit, OnDestroy {
   }
 
   formatDate(s: string): string {
-    const d = new Date(s),
-      diff = (Date.now() - d.getTime()) / 1000;
+    if (!s) return '';
+    // FIX : LocalDateTime de Spring n'a pas de timezone → on force l'interprétation UTC
+    const normalized =
+      s.includes('T') && !s.includes('Z') && !s.includes('+') && !s.includes('-', 10) ? s + 'Z' : s;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return s;
+    const diff = (Date.now() - d.getTime()) / 1000;
     if (diff < 60) return "à l'instant";
     if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
     if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
