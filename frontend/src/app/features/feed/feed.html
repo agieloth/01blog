@@ -111,7 +111,7 @@
         <button class="read-more" (click)="toggleExpand(post.id)">
           {{ expandedPosts[post.id] ? '← Réduire' : 'Lire la suite →' }}
         </button>
-        <button class="report-btn-small" *ngIf="!isOwn(post)" (click)="openReport(post.authorId, post.authorUsername)">
+        <button class="report-btn-small" *ngIf="!isOwn(post)" (click)="openReport(post.id, post.authorId, post.authorUsername)">
           ⚠️
         </button>
       </div>
